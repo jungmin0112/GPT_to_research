@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "dev:plus": "next dev --webpack -H 127.0.0.1",
     "start:plus": "next start -H 127.0.0.1",
-    "check:modules": "node scripts/check-boundaries.mjs"
+    "check:modules": "node scripts/check-boundaries.mjs",
+    "worker": "node scripts/update-worker.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

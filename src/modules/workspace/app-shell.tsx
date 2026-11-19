@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { UpdatePanel } from "@/modules/updates";
 import { Button } from "@/shared/ui/button";
 import { MaterialWorkspace } from "./session-workspace";
 import { MiniReading, type Reading } from "@/modules/sessions";
@@ -17,6 +18,11 @@ export default function Home() {
   const [focus, setFocus] = useState(""),
     [reading, setReading] = useState<Reading | null>(null),
     [version, setVersion] = useState(0);
+  const [knowledgeRevision, setKnowledgeRevision] = useState(0);
+  const refreshKnowledge = useCallback(
+    () => setKnowledgeRevision((n) => n + 1),
+    [],
+  );
   const [screen, setScreen] = useState("chat");
   const [panel, setPanel] = useState("미니 세션");
   const [aux, setAux] = useState(false);
@@ -262,6 +268,14 @@ export default function Home() {
                 </h1>
                 <p>{project.purpose}</p>
 
+                <details className="knowledge-tools">
+                  <summary>연구 갱신</summary>
+                  <UpdatePanel
+                    key={project.id}
+                    project={project.id}
+                    refresh={refreshKnowledge}
+                  />
+                </details>
                 <MaterialWorkspace
                   key={focus || project.session_id}
                   name={project.name}
@@ -283,7 +297,7 @@ export default function Home() {
           </main>
           {project && screen === "chat" && aux && (
             <aside>
-              <h2>보조 패널</h2>
+              <h2 data-version={knowledgeRevision}>보조 패널</h2>
               <div className="tabs">
                 {["미니 세션", "결과물 그래프", "세션 그래프"].map((t) => (
                   <button
