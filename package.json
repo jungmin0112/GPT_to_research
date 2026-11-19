@@ -1,0 +1,58 @@
+{
+  "name": "gpt-to-search",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.16"
+  },
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1",
+    "dev:mock": "APP_MOCK=1 next dev --webpack -H 127.0.0.1",
+    "build": "next build --webpack",
+    "start": "next start -H 127.0.0.1",
+    "lint": "eslint . && npm run check:modules",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "dev:plus": "next dev --webpack -H 127.0.0.1",
+    "start:plus": "next start -H 127.0.0.1",
+    "check:modules": "node scripts/check-boundaries.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@radix-ui/react-slot": "^1.5.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.1",
+    "@xyflow/react": "^13.0.2",
+    "cheerio": "^1.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "ipaddr.js": "^2.5.0",
+    "jose": "^6.2.18",
+    "next": "^16.4.6",
+    "openai": "^7.59.0",
+    "proper-lockfile": "^4.1.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "robots-parser": "^3.0.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.7.0",
+    "unpdf": "^2.2.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@tailwindcss/postcss": "^4.3.5",
+    "@types/node": "^22.20.5",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.6",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1"
+  }
+}
