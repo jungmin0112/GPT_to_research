@@ -7,6 +7,9 @@ export type ExploreSession = {
   kind: "main" | "mini" | "branch";
   parent_id: string | null;
   context_level: number;
+  parent_scope: number;
+  peer_scope: number;
+  knowledge_scope: number;
   cross_project: boolean;
   material_id: string | null;
 };
@@ -53,8 +56,21 @@ export function BranchControls({
       setBusy(false);
     }
   }
-  async function settings(level: number, external: boolean) {
-    await request(api, { action: "settings", session, level, external });
+  async function settings(
+    level: number,
+    external: boolean,
+    extra: Record<string, number> = {},
+  ) {
+    await request(api, {
+      action: "settings",
+      session,
+      level,
+      external,
+      parent_scope: row?.parent_scope,
+      peer_scope: row?.peer_scope,
+      knowledge_scope: row?.knowledge_scope,
+      ...extra,
+    });
     setRows(await request(api));
   }
   return (
@@ -108,7 +124,7 @@ export function BranchControls({
               aria-label="참조 수준"
               type="range"
               min="0"
-              max="3"
+              max="4"
               value={row.context_level}
               disabled={busy}
               onChange={(e) =>
@@ -120,6 +136,27 @@ export function BranchControls({
           </label>
           <details>
             <summary>고급 참조</summary>
+            {(["parent_scope", "peer_scope", "knowledge_scope"] as const).map(
+              (k, i) => (
+                <label key={k}>
+                  {["상위 세션", "다른 세션", "통합 조사 기록"][i]} · {row[k]}
+                  <input
+                    type="range"
+                    min="0"
+                    max="4"
+                    value={row[k]}
+                    disabled={busy}
+                    onChange={(e) =>
+                      void act(() =>
+                        settings(row.context_level, row.cross_project, {
+                          [k]: Number(e.target.value),
+                        }),
+                      )
+                    }
+                  />
+                </label>
+              ),
+            )}
             <label>
               <input
                 type="checkbox"

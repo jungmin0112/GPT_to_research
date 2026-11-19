@@ -46,17 +46,28 @@ export async function planRoute(req: Request, route: string, host: string) {
     const catalog = await models(a.token);
     if (!post)
       return Response.json(
-        { catalog, selected: a.model },
+        { catalog, selected: a.model, preferences: a.preferences ?? {} },
         { headers: { "Cache-Control": "no-store" } },
       );
-    const { model } = z.object({ model: z.string() }).parse(await req.json());
+    const { model, task, effort } = z
+      .object({
+        model: z.string(),
+        task: z.enum(["main", "branch", "mini", "update"]).optional(),
+        effort: z.enum(["low", "medium", "high"]).optional(),
+      })
+      .parse(await req.json());
     if (!catalog.some((m) => m.id === model))
       throw new Problem(400, "이 계정의 모델 목록에서 선택하세요.");
     await withVault((v) => {
       const current = v.accounts.find((b) => b.client === a.client);
       if (!current || v.active !== a.client)
         throw new Problem(409, "계정이 변경되었습니다.");
-      current.model = model;
+      if (task)
+        current.preferences = {
+          ...current.preferences,
+          [task]: { model, effort },
+        };
+      else current.model = model;
     });
     return Response.json({ ok: true });
   }

@@ -54,6 +54,7 @@ export async function analyzeEvidence(e: AnalysisEvidence, nodes: Existing[]) {
           "off",
           (s) => (output += s),
           () => {},
+          "update",
         );
         return JSON.parse(
           output.trim().replace(/^\x60{3}(?:json)?\s*|\s*\x60{3}$/g, ""),

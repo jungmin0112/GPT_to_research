@@ -49,6 +49,7 @@ export function MaterialWorkspace({
   onChat,
   onRead,
   onBranch,
+  onEvidenceSession,
   chatRevision,
   knowledge,
   documentRequest,
@@ -61,6 +62,7 @@ export function MaterialWorkspace({
   screen: string;
   onRead: (doc: Reading) => void;
   onBranch: (id: string) => void;
+  onEvidenceSession: (id: string) => void;
   chatRevision: number;
   knowledge: KnowledgeState;
   refreshKnowledge: () => void;
@@ -367,7 +369,7 @@ export function MaterialWorkspace({
                                   key={n.id}
                                   node={n}
                                   state={knowledge}
-                                  openSession={onBranch}
+                                  openSession={onEvidenceSession}
                                   openMaterial={(item) =>
                                     readMaterial(project, item)
                                       .then(open)

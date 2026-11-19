@@ -14,7 +14,7 @@
 | Sessions | Chat | chat. 질문·응답 시도 및 재시도, SSE, 대화 기록 저장 |
 | AI & Context | PlanSettings | planRoute, research, describeFailure. 명시 참조와 기록으로 입력 구성, 모델 및 검색 요청 |
 | Sources & Reader | MaterialLibrary, Reader, readMaterial, Material | materials, sourceReference. URL·PDF·텍스트, 검색 자료 및 원문 조회와 재수집 |
-| Graphs | SessionGraph | Projects 공개 타입에서 받은 현재 메인 세션의 미리보기와 열기 이벤트 |
+| Graphs | SessionGraph | 세션 계보와 프로젝트 결과물의 필터·미리보기·열기 |
 | Workspace | 기본 화면 | 프로젝트·세션 선택, 탭, 분할·패널·스크롤 상태와 기능별 UI 조립 |
 
 UI는 src/modules/모듈명/index.ts(x), 서버는 해당 모듈의 server.ts를 사용한다. shared는 버튼·안전한 링크·브라우저 요청·대화 계약을 제공한다. server/database는 소유자 인증 컨텍스트와 RPC·타입 및 mock DB 어댑터, server/integrations/chatgpt는 OAuth·Windows 자격 증명 저장·Responses 스트림을 담당한다.
@@ -27,9 +27,12 @@ UI는 src/modules/모듈명/index.ts(x), 서버는 해당 모듈의 server.ts를
 - 새 begin_source_turn RPC는 기존 begin_turn과 같은 트랜잭션에서 응답 시도에 참조 ID를 기록한다. ID가 없는 기존 요청은 기존 RPC를 그대로 쓴다. 참조는 자료 ID를 가리키며 본문 버전을 고정하지 않는다.
 - Workspace는 세션별 열린 자료 ID·선택·분할·위치를 브라우저 sessionStorage에 기록한다. 복원 시 서버에서 자료를 재조회한다. 질문 초안과 참조도 세션별로 유지한다. 같은 브라우저 탭의 세션 이동·새로고침이 복원 범위다.
 
-## 다음 모듈과 제약
+## 통합 모듈의 공개 경계
 
-심화·미니 세션은 각각 Sessions와 Sources의 공개 기능으로 연결한다. Knowledge가 결과물·기여도·수정 이력을 소유하면 Graphs는 공개 조회를 소비한다. Updates가 변경 조회·AI 분석·Knowledge 갱신을 조립하고, Conflicts가 검토 결정을 소유한다. 현재 데이터 모델에는 심화 분기·결과물 노드·검토 기록이 없어 해당 그래프 필터·그룹, 결과물/관리 화면을 구현하지 않았다.
+- Sessions는 분기·미니 세션·선택 전달과 기록 복원을 소유한다. Sources는 원문·문단을 공급하고 Workspace는 세션과 원문을 조합한다. AI는 선택한 참조와 참조 정책에 맞는 기록으로 요청을 구성한다.
+- Updates는 원본 변경을 선점하고 AI의 구조화 분석을 Knowledge 트랜잭션에 전달한다. Knowledge는 프로젝트별 결과물·기여·이력과 내보내기를 소유한다. Conflicts는 기존 버전과 사용자의 선택을 검토 RPC에 전달한다.
+- Graphs는 세션 계보와 주제별 결과물 노드에서 미리보기 및 열기 이벤트를 제공한다. Search는 소유자 범위의 프로젝트·세션·자료·결과물 검색을 제공한다. Workspace가 대상 프로젝트와 세션을 선택하고 문서를 연다.
+- 공개 API는 각 모듈의 index.ts 또는 server.ts에 있다. OAuth 금고와 SDK는 서버에만 존재한다. 상시 작업자와 웹은 동일한 Node 앱 및 중앙 DB를 사용한다.
 
 SQL 함수와 트리거 사이의 결합은 TypeScript import 검사 범위 밖에 있다. DB 타입을 갱신하고 SQL 저장·조회 회귀 테스트를 함께 실행한다. 긴 대화 컨텍스트의 토큰 예산과 원문 버전 고정은 후속 과제다.
 

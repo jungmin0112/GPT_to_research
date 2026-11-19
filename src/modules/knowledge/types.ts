@@ -51,6 +51,14 @@ export type KnowledgeState = {
     created_at: string;
     new_node: string | null;
   }[];
+  activity?: {
+    id: string;
+    title: string;
+    state: string;
+    attempts: number;
+    created_at: string;
+  }[];
+  autoAttempts?: number;
   pending: number;
   failed: number;
 };

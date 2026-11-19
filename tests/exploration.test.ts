@@ -97,6 +97,51 @@ test("5단계 분기, 원문별 대화 분리, 선택 전달의 중복 방지", 
     expect(
       await rpc("related_records", { target: parent, question: "선택" }, false),
     ).toHaveLength(1);
+    await rpc(
+      "context_policy",
+      {
+        target: parent,
+        level: 4,
+        external: false,
+        parent_scope: 4,
+        peer_scope: 0,
+        knowledge_scope: 0,
+      },
+      true,
+    );
+    expect(
+      await rpc("context_records", { target: parent, question: "선택" }, false),
+    ).toEqual([]);
+    await rpc(
+      "context_policy",
+      {
+        target: parent,
+        level: 4,
+        external: false,
+        parent_scope: 0,
+        peer_scope: 4,
+        knowledge_scope: 0,
+      },
+      true,
+    );
+    expect(
+      await rpc("context_records", { target: parent, question: "선택" }, false),
+    ).toMatchObject([{ category: "peer" }]);
+    const argsDigest = { target: minis[0], signature: "fixture" };
+    const summary = {
+      keywords: ["관측"],
+      candidates: [{ id: selected[0], summary: "선택" }],
+    };
+    expect(
+      await rpc("reading_digest", { ...argsDigest, summary }, true),
+    ).toEqual(summary);
+    expect(
+      await rpc(
+        "reading_digest",
+        { ...argsDigest, summary: { keywords: [] } },
+        true,
+      ),
+    ).toEqual(summary);
   } finally {
     vi.unstubAllEnvs();
   }

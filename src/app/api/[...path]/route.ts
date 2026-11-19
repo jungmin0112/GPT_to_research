@@ -1,3 +1,4 @@
+import { allowHost } from "@/server/host-policy";
 import { projectsRoute } from "@/modules/projects/server";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -20,13 +21,19 @@ async function handle(
     const post = req.method === "POST";
     const host = req.headers.get("host") || "";
     if (
-      (mockMode() ||
-        route.startsWith("plan/") ||
-        route.endsWith("/chat") ||
-        route.endsWith("/updates")) &&
-      !/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host)
+      !allowHost(
+        host,
+        req.headers.get("origin"),
+        post,
+        route,
+        mockMode(),
+        process.env.PRIVATE_APP_HTTPS_ORIGIN,
+      )
     )
-      throw new Problem(403, "로컬 mock 전용입니다.");
+      throw new Problem(
+        403,
+        "허용된 개인용 앱 주소에서 요청하세요. 계정 승인은 호스트의 로컬 앱에서 진행하세요.",
+      );
     if (
       post &&
       ((req.headers.get("origin") &&
