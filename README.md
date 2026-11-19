@@ -1,6 +1,8 @@
 # GPT to search
 
-개인용 AI 자료조사·다층 탐구·지식 통합 웹 애플리케이션. M0 프로젝트 작업 공간과 M1 메인 채팅의 첫 구현을 포함한다.
+개인용 AI 자료조사·다층 탐구·지식 통합 웹 애플리케이션. 프로젝트 자료함, 세션별 원문 독해·다층 탐구, 증분 지식 통합, 검토·그래프·내보내기를 제공한다.
+
+[통합본 적용, SQL 순서 및 HTTPS 호스팅](docs/13_integrated_mvp.md)
 
 ## 현재 구조와 Windows 업데이트
 
@@ -16,11 +18,11 @@ ChatGPT처럼 질문하고 웹 자료를 탐색하면서 원문 전용 미니 �
 
 - **웹**: Next.js App Router, React, TypeScript, Tailwind CSS, shadcn/ui
 - **시각화**: `@xyflow/react`(세션 그래프 + 결과물 그래프)
-- **서버**: Next.js Route Handlers, Supabase Edge Functions(TypeScript/Deno)
+- **서버**: Next.js Node Route Handlers
 - **데이터**: Supabase PostgreSQL, Auth, 비공개 Storage; 검색은 우선 SQL/FTS, 필요할 때 pgvector
 - **AI**: OpenAI Responses API와 지원 모델의 웹 검색 도구
-- **작업**: Supabase Cron이 갱신 시점을 확인하고 작업자 함수를 호출
-- **배포**: Vercel(웹) + Supabase(DB/작업)
+- **작업**: 소유자 전용 Node 작업자가 1분 간격으로 갱신 확인
+- **배포**: 개인용 상시 VM(웹·플랜·작업자) + Supabase(DB/Auth/Storage)
 - **검증**: Vitest, Playwright, TypeScript, ESLint
 
 모델명·요금·각 API의 인자 등은 코딩 시점의 공식 문서를 확인하여 구현한다. 이용 가능한 모델을 임의로 단정하지 않는다.
@@ -90,7 +92,7 @@ DB 타입은 마이그레이션이 적용된 PostgreSQL의 public 스키마에�
 
 - 로컬 GoTrue·PostgREST·PostgreSQL 17과 실제 Chromium에서 이메일 로그인, 생성, 새로고침, 로그아웃, 재로그인 및 같은 세션 복원을 확인했다. 테스트용 로컬 라우터가 Auth와 REST 요청을 각 서비스로 전달했다. 별도 계정은 앱에서 403을 받았고, 같은 계정의 JWT로 PostgREST에 직접 요청했을 때 프로젝트 목록은 비어 있었다.
 - 테스트 계정·모델로 대화 스트림과 출처 복원을 검사했다. 실제 OpenAI SDK의 요청 형식과 응답 이벤트 파싱은 HTTP fixture로 검사했다.
-- 운영 Supabase, Storage 서비스, OpenAI 실호출·검색 품질·비용, Vercel 배포는 미검증이다. 월간 예산 제어, 모델·추론 오버라이드, M2~M5는 후속 범위다. 현재 세션 기록을 매 요청에 재구성하므로 긴 대화의 압축과 입력 토큰 예산도 후속 작업이다.
+- M2–M5 구현과 SQL을 로컬 DB 및 Chromium으로 검증했다. 운영 Supabase와 실계정 플랜, 기기 간 HTTPS 인수 항목은 [운영 가이드](docs/13_integrated_mvp.md)에 있다. 긴 대화의 압축과 입력 토큰 예산은 후속 과제다.
 
 ## 배포 전 확인
 

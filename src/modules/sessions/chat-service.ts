@@ -111,7 +111,7 @@ export async function chat(
         emit("message.started", { userMessageId: client_message_id });
         if (state === "started") {
           const related = (await rpc(
-            "related_records",
+            "context_records",
             { target, question: text },
             false,
           )) as { id: string; session_id: string; answer: string }[];
@@ -126,9 +126,16 @@ export async function chat(
             () => emit("search.status", { status: "searching" }),
             reference,
             related,
+            miniMaterial
+              ? "mini"
+              : target === project?.session_id
+                ? "main"
+                : "branch",
           );
-          if (related.length)
+          if (related.length) {
             details.related_records = related.map((r) => r.id);
+            details.context_snapshot = related;
+          }
           if (reference) {
             if (nodeId) details.explicit_node = nodeId;
             else details.explicit_ref = reference.id;

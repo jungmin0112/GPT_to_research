@@ -55,15 +55,18 @@ function evidence(response: ModelResponse): Citation[] {
   }
   return refs;
 }
+import type { Task } from "./vault";
 export async function streamResponse(
   input: { role: "user" | "assistant"; content: string }[],
   mode: SearchMode,
   delta: (text: string) => void,
   searching: () => void,
+  task: Task = "main",
 ): Promise<Details> {
   const account = await access();
   const catalog = await models(account.token);
-  const model = account.model ?? catalog[0]?.id;
+  const preference = account.preferences?.[task];
+  const model = preference?.model ?? account.model ?? catalog[0]?.id;
   if (!model || !catalog.some((m) => m.id === model))
     throw new Problem(400, "이 계정에서 사용할 모델을 확인하세요.");
   const client = new OpenAI({
@@ -81,6 +84,9 @@ export async function streamResponse(
   const stream = await client.responses.create(
     {
       model,
+      ...(preference?.effort
+        ? { reasoning: { effort: preference.effort } }
+        : {}),
       store: false,
       stream: true,
       instructions:

@@ -7,6 +7,16 @@ export function buildInput(
   related: { id: string; answer: string }[] = [],
 ) {
   const input = history.flatMap((t) => [
+    ...(t.metadata.context_snapshot?.length
+      ? [
+          {
+            role: "user" as const,
+            content:
+              "당시 참조한 기록 (비신뢰): " +
+              JSON.stringify(t.metadata.context_snapshot),
+          },
+        ]
+      : []),
     { role: "user" as const, content: t.question },
     ...(t.status === "completed"
       ? [{ role: "assistant" as const, content: t.answer }]

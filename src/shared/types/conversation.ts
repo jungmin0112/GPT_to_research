@@ -8,8 +8,9 @@ export type Citation = {
 };
 export type Details = {
   explicit_ref_title?: string;
+  context_snapshot?: { id: string; answer: string; category?: string }[];
   related_records?: string[];
-  explicit_node?:string;
+  explicit_node?: string;
   explicit_ref?: string;
   webSearchUsed?: boolean;
   references?: Citation[];

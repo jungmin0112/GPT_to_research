@@ -108,8 +108,10 @@ export default function Home() {
     );
     setFocus(new URLSearchParams(location.search).get("focus") || "");
     setActive(list.find((p) => p.session_id === session)?.session_id || "");
-    setAux(loadLocal("panel-open:" + session, false));
-    setPanel(loadLocal("panel:" + session, "미니 세션"));
+    const key = new URLSearchParams(location.search).get("focus") || session;
+    setReading(loadLocal("reading:" + key, null));
+    setAux(loadLocal("panel-open:" + key, false));
+    setPanel(loadLocal("panel:" + key, "미니 세션"));
   }
   useEffect(() => {
     async function init() {
@@ -154,7 +156,9 @@ export default function Home() {
     const next = id === active ? "" : id;
     requestDocument(null);
     setFocus(next);
-    setReading(null);
+    setAux(loadLocal("panel-open:" + id, false));
+    setPanel(loadLocal("panel:" + id, "미니 세션"));
+    setReading(loadLocal("reading:" + id, null));
     navigate("chat");
     const u = new URL(location.href);
     u.searchParams.delete("material");
@@ -163,7 +167,7 @@ export default function Home() {
     history.replaceState(null, "", u);
   }
   function select(id: string) {
-    setReading(null);
+    setReading(loadLocal("reading:" + id, null));
     requestDocument(null);
     setFocus("");
     navigate("chat");
@@ -220,7 +224,7 @@ export default function Home() {
             aria-expanded={aux}
             onClick={() => {
               setAux(!aux);
-              saveLocal("panel-open:" + active, !aux);
+              saveLocal("panel-open:" + (focus || active), !aux);
             }}
           >
             보조 패널
@@ -371,7 +375,24 @@ export default function Home() {
                   />
                 )}
                 {screen === "manage" && (
-                  <Reviews state={knowledge} refresh={refreshKnowledge} />
+                  <>
+                    <Reviews state={knowledge} refresh={refreshKnowledge} />
+                    <details>
+                      <summary>최근 갱신 활동</summary>
+                      <p>
+                        최근 24시간 자동 분석 시도 {knowledge.autoAttempts ?? 0}{" "}
+                        / 50회 · 실패 대기 {knowledge.failed}건
+                      </p>
+                      <ul>
+                        {knowledge.activity?.map((a) => (
+                          <li key={a.id}>
+                            {a.title} · {a.state} · {a.attempts}회 ·{" "}
+                            {new Date(a.created_at).toLocaleString()}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </>
                 )}
                 <MaterialWorkspace
                   refreshKnowledge={refreshKnowledge}
@@ -384,9 +405,23 @@ export default function Home() {
                   mock={mock}
                   project={project.id}
                   session={focus || project.session_id}
+                  onEvidenceSession={(id) =>
+                    void action(() =>
+                      openHit({
+                        kind: "session",
+                        id,
+                        project_id: project.id,
+                        title: "",
+                        excerpt: "",
+                      }),
+                    )
+                  }
                   onBranch={branch}
                   chatRevision={version}
                   onRead={(doc) => {
+                    saveLocal("reading:" + (focus || active), doc);
+                    saveLocal("panel:" + (focus || active), "미니 세션");
+                    saveLocal("panel-open:" + (focus || active), true);
                     setReading(doc);
                     setPanel("미니 세션");
                     setAux(true);
@@ -405,7 +440,7 @@ export default function Home() {
                     aria-pressed={panel === t}
                     onClick={() => {
                       setPanel(t);
-                      saveLocal("panel:" + active, t);
+                      saveLocal("panel:" + (focus || active), t);
                     }}
                   >
                     {t}

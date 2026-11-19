@@ -12,6 +12,7 @@ export async function research(
   searching: () => void,
   reference?: SourceContext,
   related: { id: string; answer: string }[] = [],
+  task: "main" | "branch" | "mini" = "main",
 ): Promise<Details> {
   const last = history.at(-1)!;
   if (mockMode()) {
@@ -36,5 +37,6 @@ export async function research(
     mode,
     delta,
     searching,
+    task,
   );
 }

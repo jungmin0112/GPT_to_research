@@ -13,12 +13,15 @@ export type Tokens = {
   expires: number;
   scope: string;
 };
+export type Task = "main" | "branch" | "mini" | "update";
+export type Preference = { model: string; effort?: "low" | "medium" | "high" };
 export type Account = {
   client: string;
   sub: string;
   label: string;
   tokens?: Tokens;
   model?: string;
+  preferences?: Partial<Record<Task, Preference>>;
   welcomed?: boolean;
 };
 export type Vault = {

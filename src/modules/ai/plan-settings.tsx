@@ -23,6 +23,10 @@ export function PlanSettings({
     [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<{ id: string; name: string }[]>([]),
     [selected, setSelected] = useState("");
+  type Task = "main" | "branch" | "mini" | "update";
+  const [prefs, setPrefs] = useState<
+    Partial<Record<Task, { model: string; effort?: string }>>
+  >({});
   const apply = useCallback(
     async (data: State) => {
       setState(data);
@@ -32,6 +36,7 @@ export function PlanSettings({
       ) {
         const choices = await request("plan/models");
         setCatalog(choices.catalog);
+        setPrefs(choices.preferences ?? {});
         setSelected(choices.selected ?? choices.catalog[0]?.id ?? "");
       }
     },
@@ -78,6 +83,61 @@ export function PlanSettings({
         ) : (
           <small>설정에서 ChatGPT 계정을 연결하세요.</small>
         )}
+        {active?.connected && (
+          <details>
+            <summary>작업별 모델·추론</summary>
+            {(
+              [
+                ["main", "메인"],
+                ["branch", "심화"],
+                ["mini", "독해"],
+                ["update", "갱신"],
+              ] as const
+            ).map(([task, label]) => {
+              const pref = prefs[task];
+              const save = (model: string, effort?: string) =>
+                void act(async () => {
+                  await request("plan/models", {
+                    task,
+                    model,
+                    effort: effort || undefined,
+                  });
+                });
+              return (
+                <fieldset key={task}>
+                  <legend>{label}</legend>
+                  <label>
+                    모델
+                    <select
+                      value={pref?.model ?? selected}
+                      onChange={(e) => save(e.target.value, pref?.effort)}
+                    >
+                      {catalog.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    추론 수준
+                    <select
+                      value={pref?.effort ?? ""}
+                      onChange={(e) =>
+                        save(pref?.model ?? selected, e.target.value)
+                      }
+                    >
+                      <option value="">모델 기본값</option>
+                      <option value="low">낮음</option>
+                      <option value="medium">중간</option>
+                      <option value="high">높음</option>
+                    </select>
+                  </label>
+                </fieldset>
+              );
+            })}
+          </details>
+        )}
         {error && <p role="alert">{error}</p>}
       </div>
     );
@@ -108,27 +168,35 @@ export function PlanSettings({
           </button>
         </dialog>
       )}
-      <form action="/api/plan/login" method="post">
-        <input type="hidden" name="session" value={session} />
-        {!!state?.accounts.length && (
-          <label>
-            계정 등록
-            <select
-              name="client"
-              defaultValue={state.active ?? ""}
-              key={state.active}
-            >
-              {state.accounts.map((a) => (
-                <option key={a.client} value={a.client}>
-                  {a.label} · {a.client.slice(-8)}
-                </option>
-              ))}
-              <option value="">다른 계정 추가</option>
-            </select>
-          </label>
-        )}
-        <button className="plan-login">Continue with ChatGPT</button>
-      </form>
+      {state &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname) ? (
+        <form action="/api/plan/login" method="post">
+          <input type="hidden" name="session" value={session} />
+          {!!state?.accounts.length && (
+            <label>
+              계정 등록
+              <select
+                name="client"
+                defaultValue={state.active ?? ""}
+                key={state.active}
+              >
+                {state.accounts.map((a) => (
+                  <option key={a.client} value={a.client}>
+                    {a.label} · {a.client.slice(-8)}
+                  </option>
+                ))}
+                <option value="">다른 계정 추가</option>
+              </select>
+            </label>
+          )}
+          <button className="plan-login">Continue with ChatGPT</button>
+        </form>
+      ) : (
+        <p>
+          계정 추가·재승인은 전용 호스트의 브라우저에서 로컬 앱을 열어
+          진행하세요.
+        </p>
+      )}
       {active && (
         <button
           onClick={() =>

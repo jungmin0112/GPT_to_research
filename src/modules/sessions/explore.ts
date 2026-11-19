@@ -1,3 +1,4 @@
+import { readingSummary } from "./reading-service";
 import { z } from "zod";
 import { type Rpc, Problem } from "@/server/database/backend";
 export async function exploration(req: Request, project: string, rpc: Rpc) {
@@ -6,6 +7,7 @@ export async function exploration(req: Request, project: string, rpc: Rpc) {
     return Response.json(await rpc("explore_sessions", { target }, false));
   const data = z
     .discriminatedUnion("action", [
+      z.object({ action: z.literal("digest"), session: z.uuid() }),
       z.object({
         action: z.literal("anchor"),
         parent: z.uuid(),
@@ -25,7 +27,10 @@ export async function exploration(req: Request, project: string, rpc: Rpc) {
       z.object({
         action: z.literal("settings"),
         session: z.uuid(),
-        level: z.number().int().min(0).max(3),
+        level: z.number().int().min(0).max(4),
+        parent_scope: z.number().int().min(0).max(4).default(4),
+        peer_scope: z.number().int().min(0).max(4).default(4),
+        knowledge_scope: z.number().int().min(0).max(4).default(0),
         external: z.boolean(),
       }),
       z.object({
@@ -35,6 +40,8 @@ export async function exploration(req: Request, project: string, rpc: Rpc) {
       }),
     ])
     .parse(await req.json());
+  if (data.action === "digest")
+    return Response.json(await readingSummary(rpc, target, data.session));
   if (data.action === "settings") {
     const rows = (await rpc("explore_sessions", { target }, false)) as {
       id: string;
@@ -42,8 +49,15 @@ export async function exploration(req: Request, project: string, rpc: Rpc) {
     if (!rows.some((s) => s.id === data.session))
       throw new Problem(404, "세션을 찾을 수 없습니다.");
     await rpc(
-      "context_settings",
-      { target: data.session, level: data.level, external: data.external },
+      "context_policy",
+      {
+        target: data.session,
+        level: data.level,
+        external: data.external,
+        parent_scope: data.parent_scope,
+        peer_scope: data.peer_scope,
+        knowledge_scope: data.knowledge_scope,
+      },
       true,
     );
     return Response.json({ ok: true });

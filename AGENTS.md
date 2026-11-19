@@ -60,3 +60,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 모듈 결합은 화면 조립 또는 유스케이스 서비스에서 처리한다. 각 모듈이 자기 도메인의 RPC 호출을 담당한다. 여러 테이블에 걸친 하나의 저장 작업은 기존 트랜잭션 경계를 보존한다.
 - 요청 라우트는 인증, 유효성 확인, 디스패치와 HTTP 응답을 담당한다. 공통 표현·전송 계약은 shared, 외부 프로토콜과 DB 어댑터는 server에 둔다.
 - 변경 전후 lint(경계·순환 검사 포함), typecheck, 관련 Vitest와 Playwright, build를 실행한다. 기존 데이터·요청과 호환되는 추가 마이그레이션을 사용한다. 공개 계약을 바꾸면 이 문서와 회귀 테스트를 함께 갱신한다.
+
+- 원문 열람과 모델 참조 전송을 분리한다. 증분 반영에는 원본 ID, 인용, 버전 및 재시도 일관성을 유지한다. 플랜 호출 실패 시 유료 API로 자동 전환하지 않는다. 운영 조건은 docs/13_integrated_mvp.md를 기준으로 한다.

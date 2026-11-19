@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { request } from "@/shared/lib/request";
 import { streamTurn } from "./stream-client";
+import { SourceLink } from "@/shared/ui/source-link";
 import { AnswerMarkdown } from "./answer-markdown";
 import type { Turn } from "@/shared/types/conversation";
 export type Reading = { id: string; title: string; quote: string };
@@ -14,6 +15,11 @@ export function MiniReading({
   doc: Reading;
   onForward: () => void;
 }) {
+  const [digest, setDigest] = useState<{
+    candidates: { id: string; summary: string }[];
+    keywords: string[];
+    followup: string;
+  } | null>(null);
   const api = "projects/" + project + "/exploration";
   const [session, setSession] = useState(""),
     [rows, setRows] = useState<Turn[]>([]),
@@ -63,6 +69,22 @@ export function MiniReading({
     <section>
       <h3>{doc.title}</h3>
       <blockquote>{doc.quote}</blockquote>
+      {done && digest && (
+        <div>
+          <h3>독해 정리</h3>
+          <p>{digest.keywords.join(" · ")}</p>
+          {digest.followup && (
+            <button
+              onClick={() => {
+                setDone(false);
+                setQuestion(digest.followup);
+              }}
+            >
+              {digest.followup}
+            </button>
+          )}
+        </div>
+      )}
       {rows.map((t) => (
         <article key={t.id}>
           {done && t.status === "completed" && (
@@ -81,11 +103,21 @@ export function MiniReading({
               전달 선택
             </label>
           )}
+          {done && digest?.candidates.find((c) => c.id === t.id)?.summary && (
+            <p>{digest.candidates.find((c) => c.id === t.id)?.summary}</p>
+          )}
           <strong>{t.question}</strong>
           <AnswerMarkdown text={t.answer} />
+          {t.metadata.references
+            ?.filter((r) => r.kind === "citation")
+            .map((r) => (
+              <SourceLink key={r.url} href={r.url}>
+                {r.title}
+              </SourceLink>
+            ))}
         </article>
       ))}
-      {partial && <p>{partial}</p>}
+      {partial && <AnswerMarkdown text={partial} />}
       {error && <p role="alert">{error}</p>}
       {done ? (
         <>
@@ -150,10 +182,17 @@ export function MiniReading({
           <button
             type="button"
             disabled={busy}
-            onClick={() => {
-              setDone(true);
-              setIds([]);
-            }}
+            onClick={() =>
+              void run(async () => {
+                const result = await request(api, {
+                  action: "digest",
+                  session,
+                });
+                setDigest(result);
+                setDone(true);
+                setIds(result.candidates.map((c: { id: string }) => c.id));
+              })
+            }
           >
             다 읽음
           </button>

@@ -227,7 +227,12 @@ export async function access() {
       a.tokens = tokens(tokenSchema.parse(body), a.tokens);
       if (!hasGrant(a.tokens.scope)) return null;
     }
-    return { token: a.tokens.access, client: a.client, model: a.model };
+    return {
+      token: a.tokens.access,
+      client: a.client,
+      model: a.model,
+      preferences: a.preferences,
+    };
   });
   if (!result)
     throw new Problem(
