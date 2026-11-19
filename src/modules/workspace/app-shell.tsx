@@ -4,7 +4,10 @@ import { UpdatePanel } from "@/modules/updates";
 import { Button } from "@/shared/ui/button";
 import { MaterialWorkspace } from "./session-workspace";
 import { MiniReading, type Reading } from "@/modules/sessions";
-import { SessionGraph } from "@/modules/graphs";
+import { Search, type Hit } from "@/modules/search";
+import { Reviews } from "@/modules/conflicts";
+import type { KnowledgeState } from "@/modules/knowledge";
+import { KnowledgeGraph, SessionGraph } from "@/modules/graphs";
 import { loadLocal, saveLocal } from "@/shared/lib/session-storage";
 import { ApiError, request } from "@/shared/lib/request";
 import { ProjectHome, type Project } from "@/modules/projects";
@@ -31,12 +34,78 @@ export default function Home() {
     [busy, setBusy] = useState(false);
 
   const project = projects?.find((p) => p.session_id === active);
+  const [loadedKnowledge, setKnowledge] = useState<KnowledgeState>({
+    nodes: [],
+    changes: [],
+    pending: 0,
+    failed: 0,
+  });
+  const [documentRequest, requestDocument] = useState<{
+    id: string;
+    project: string;
+  } | null>(null);
+  const projectId = project?.id;
+  const [knowledgeOwner, setKnowledgeOwner] = useState("");
+  const knowledge =
+    knowledgeOwner === projectId
+      ? loadedKnowledge
+      : { nodes: [], changes: [], pending: 0, failed: 0 };
+  useEffect(() => {
+    let alive = true;
+    if (projectId)
+      request("projects/" + projectId + "/knowledge")
+        .then((v) => {
+          if (alive) {
+            setKnowledge(v);
+            setKnowledgeOwner(projectId!);
+          }
+        })
+        .catch((e) => {
+          if (alive) setError(e.message);
+        });
+    return () => {
+      alive = false;
+    };
+  }, [projectId, knowledgeRevision]);
+  function openDoc(id: string, p = projectId) {
+    if (p) {
+      navigate("chat");
+      requestDocument({ id, project: p });
+      setAux(false);
+    }
+  }
+  async function openHit(hit: Hit) {
+    const owner = projects?.find((p) => p.id === hit.project_id);
+    if (!owner) return;
+    select(owner.session_id);
+    if (hit.kind === "material" || hit.kind === "knowledge")
+      openDoc((hit.kind === "knowledge" ? "node:" : "") + hit.id, owner.id);
+    if (hit.kind === "session") {
+      const rows = (await request(
+        "projects/" + owner.id + "/exploration",
+      )) as import("@/modules/sessions").ExploreSession[];
+      const found = rows.find((r) => r.id === hit.id);
+      if (found?.kind === "mini" && found.material_id) {
+        openDoc(found.material_id, owner.id);
+        setReading({ id: found.material_id, title: found.title, quote: "" });
+        setPanel("미니 세션");
+        setAux(true);
+      } else if (found?.kind === "branch") branch(found.id);
+    }
+  }
   async function load() {
     const list: Project[] = await request("projects");
     setProjects(list);
     const session = new URLSearchParams(location.search).get("session");
     const view = new URLSearchParams(location.search).get("view");
-    setScreen(view === "settings" || view === "library" ? view : "chat");
+    setScreen(
+      view === "search" ||
+        view === "manage" ||
+        view === "settings" ||
+        view === "library"
+        ? view
+        : "chat",
+    );
     setFocus(new URLSearchParams(location.search).get("focus") || "");
     setActive(list.find((p) => p.session_id === session)?.session_id || "");
     setAux(loadLocal("panel-open:" + session, false));
@@ -83,6 +152,7 @@ export default function Home() {
   }
   function branch(id: string) {
     const next = id === active ? "" : id;
+    requestDocument(null);
     setFocus(next);
     setReading(null);
     navigate("chat");
@@ -94,6 +164,7 @@ export default function Home() {
   }
   function select(id: string) {
     setReading(null);
+    requestDocument(null);
     setFocus("");
     navigate("chat");
     setActive(id);
@@ -101,7 +172,7 @@ export default function Home() {
     setPanel(loadLocal("panel:" + id, "미니 세션"));
 
     setDrawer(false);
-    if (id !== active || !id)
+    if (id !== active || !id || focus)
       history.replaceState(null, "", id ? "?session=" + id : "/");
   }
   useEffect(() => {
@@ -231,6 +302,8 @@ export default function Home() {
                   <strong>{project.name}</strong>
                   <button onClick={() => branch(active)}>메인 세션</button>
                   <button onClick={() => navigate("library")}>자료함</button>
+                  <button onClick={() => navigate("search")}>통합 검색</button>
+                  <button onClick={() => navigate("manage")}>관리</button>
                   <button onClick={() => navigate("settings")}>설정</button>
                 </>
               )}
@@ -260,11 +333,15 @@ export default function Home() {
                 <h1>
                   {screen === "library"
                     ? "프로젝트 자료함"
-                    : screen === "settings"
-                      ? "설정"
-                      : focus
-                        ? "심화 세션"
-                        : "메인 세션"}
+                    : screen === "search"
+                      ? "통합 검색"
+                      : screen === "manage"
+                        ? "관리"
+                        : screen === "settings"
+                          ? "설정"
+                          : focus
+                            ? "심화 세션"
+                            : "메인 세션"}
                 </h1>
                 <p>{project.purpose}</p>
 
@@ -276,7 +353,30 @@ export default function Home() {
                     refresh={refreshKnowledge}
                   />
                 </details>
+                {knowledge.changes.some((c) => c.state === "review") &&
+                  screen !== "manage" && (
+                    <button onClick={() => navigate("manage")}>
+                      충돌 검토{" "}
+                      {
+                        knowledge.changes.filter((c) => c.state === "review")
+                          .length
+                      }
+                      건
+                    </button>
+                  )}
+                {screen === "search" && (
+                  <Search
+                    projects={projects}
+                    open={(hit) => void action(() => openHit(hit))}
+                  />
+                )}
+                {screen === "manage" && (
+                  <Reviews state={knowledge} refresh={refreshKnowledge} />
+                )}
                 <MaterialWorkspace
+                  refreshKnowledge={refreshKnowledge}
+                  knowledge={knowledge}
+                  documentRequest={documentRequest}
                   key={focus || project.session_id}
                   name={project.name}
                   screen={screen}
@@ -316,11 +416,29 @@ export default function Home() {
                 {panel === "세션 그래프" ? (
                   <SessionGraph
                     project={project}
+                    onMini={(id) =>
+                      openHit({
+                        kind: "material",
+                        project_id: project.id,
+                        id,
+                        title: "",
+                        excerpt: "",
+                      }).then(() => {
+                        setReading({ id, title: "원문 독해", quote: "" });
+                        setPanel("미니 세션");
+                        setAux(true);
+                      })
+                    }
                     onOpen={(id) => {
-                      select(id);
+                      branch(id);
                       setAux(false);
                       saveLocal("panel-open:" + id, false);
                     }}
+                  />
+                ) : panel === "결과물 그래프" ? (
+                  <KnowledgeGraph
+                    state={knowledge}
+                    onOpen={(id) => openDoc("node:" + id)}
                   />
                 ) : panel === "미니 세션" && reading ? (
                   <MiniReading

@@ -8,6 +8,8 @@ import {
   readMaterial,
   type Material,
 } from "@/modules/sources";
+import { NodeDetail, type KnowledgeState } from "@/modules/knowledge";
+import { request } from "@/shared/lib/request";
 import { PlanSettings } from "@/modules/ai";
 import { loadLocal, saveLocal } from "@/shared/lib/session-storage";
 
@@ -24,6 +26,20 @@ function show(v: View, id: string): View {
       : [id];
   return { ...v, tabs, panes, active: id };
 }
+type WorkspaceDoc =
+  Material | { id: string; title: string; state: "ready"; result: true };
+async function readDocument(
+  project: string,
+  id: string,
+): Promise<WorkspaceDoc> {
+  if (!id.startsWith("node:")) return readMaterial(project, id);
+  const state: KnowledgeState = await request(
+    "projects/" + project + "/knowledge",
+  );
+  const row = state.nodes.find((n) => n.id === id.slice(5));
+  if (!row) throw Error("결과물을 찾을 수 없습니다.");
+  return { id, title: row.title, state: "ready", result: true };
+}
 export function MaterialWorkspace({
   project,
   session,
@@ -34,6 +50,9 @@ export function MaterialWorkspace({
   onRead,
   onBranch,
   chatRevision,
+  knowledge,
+  documentRequest,
+  refreshKnowledge,
 }: {
   project: string;
   session: string;
@@ -43,17 +62,20 @@ export function MaterialWorkspace({
   onRead: (doc: Reading) => void;
   onBranch: (id: string) => void;
   chatRevision: number;
+  knowledge: KnowledgeState;
+  refreshKnowledge: () => void;
+  documentRequest: { id: string; project: string } | null;
   onChat: () => void;
 }) {
   const key = "workspace:" + session;
   const [view, setView] = useState<View>(empty),
-    [docs, setDocs] = useState<Record<string, Material>>({});
+    [docs, setDocs] = useState<Record<string, WorkspaceDoc>>({});
   const [revision, setRevision] = useState(0),
     [error, setError] = useState(""),
     [ready, setReady] = useState(false);
   const touched = useRef(false);
   const update = useCallback(
-    (doc: Material) => setDocs((prev) => ({ ...prev, [doc.id]: doc })),
+    (doc: WorkspaceDoc) => setDocs((prev) => ({ ...prev, [doc.id]: doc })),
     [],
   );
   const refresh = useCallback(
@@ -62,7 +84,7 @@ export function MaterialWorkspace({
     [],
   );
   const open = useCallback(
-    (doc: Material) => {
+    (doc: WorkspaceDoc) => {
       touched.current = true;
       update(doc);
       setView((v) => show(v, doc.id));
@@ -81,7 +103,7 @@ export function MaterialWorkspace({
         ]),
       ];
       const rows = await Promise.allSettled(
-        ids.map((id) => readMaterial(project, id)),
+        ids.map((id) => readDocument(project, id)),
       );
       if (!current || touched.current) return;
       const found = rows.flatMap((r) =>
@@ -149,6 +171,20 @@ export function MaterialWorkspace({
     [refresh],
   );
   const collectionError = useCollection(project, revision, collected);
+  useEffect(() => {
+    let live = true;
+    if (documentRequest?.project === project)
+      readDocument(project, documentRequest.id)
+        .then((d) => {
+          if (live) open(d);
+        })
+        .catch((e) => {
+          if (live) setError(e.message);
+        });
+    return () => {
+      live = false;
+    };
+  }, [project, documentRequest, open]);
   const current = docs[view.active];
   return (
     <>
@@ -156,7 +192,8 @@ export function MaterialWorkspace({
         <BranchControls
           project={project}
           session={session}
-          material={current?.id ?? null}
+          material={current && !("result" in current) ? current.id : null}
+          node={current?.id.startsWith("node:") ? current.id.slice(5) : null}
           open={onBranch}
         />
       )}
@@ -192,6 +229,17 @@ export function MaterialWorkspace({
         <Chat
           revision={chatRevision}
           session={session}
+          branchFrom={async (turn, title) => {
+            const id = await request("projects/" + project + "/exploration", {
+              action: "anchor",
+              parent: session,
+              label: title.slice(0, 120),
+              request_id: crypto.randomUUID(),
+              anchor_turn: turn,
+              anchor_node: null,
+            });
+            onBranch(id);
+          }}
           attachments={(select) => (
             <MaterialLibrary
               project={project}
@@ -200,7 +248,7 @@ export function MaterialWorkspace({
               onOpen={select}
             />
           )}
-          onOpenAttachment={async (id) => open(await readMaterial(project, id))}
+          onOpenAttachment={async (id) => open(await readDocument(project, id))}
           onSaved={() => setRevision((n) => n + 1)}
           current={
             current?.state === "ready"
@@ -289,17 +337,59 @@ export function MaterialWorkspace({
                         )
                       }
                     >
-                      <Reader
-                        opened={docs[id]}
-                        onRead={(quote) =>
-                          onRead({ id, title: docs[id].title, quote })
-                        }
-                        project={project}
-                        close={() => close(id)}
-                        onUpdated={update}
-                        position={() => loadLocal(key + ":scroll:" + id, 0)}
-                        onScroll={(n) => saveLocal(key + ":scroll:" + id, n)}
-                      />
+                      {"result" in docs[id] ? (
+                        <section
+                          className="material-reader"
+                          aria-label="결과물 상세"
+                        >
+                          <button onClick={() => close(id)}>결과물 닫기</button>
+                          <div
+                            className="reader-scroll"
+                            ref={(el) => {
+                              if (el)
+                                el.scrollTop = loadLocal(
+                                  key + ":scroll:" + id,
+                                  0,
+                                );
+                            }}
+                            onScroll={(e) =>
+                              saveLocal(
+                                key + ":scroll:" + id,
+                                e.currentTarget.scrollTop,
+                              )
+                            }
+                          >
+                            {knowledge.nodes
+                              .filter((n) => "node:" + n.id === id)
+                              .map((n) => (
+                                <NodeDetail
+                                  refresh={refreshKnowledge}
+                                  key={n.id}
+                                  node={n}
+                                  state={knowledge}
+                                  openSession={onBranch}
+                                  openMaterial={(item) =>
+                                    readMaterial(project, item)
+                                      .then(open)
+                                      .catch((e) => setError(e.message))
+                                  }
+                                />
+                              ))}
+                          </div>
+                        </section>
+                      ) : (
+                        <Reader
+                          opened={docs[id] as Material}
+                          onRead={(quote) =>
+                            onRead({ id, title: docs[id].title, quote })
+                          }
+                          project={project}
+                          close={() => close(id)}
+                          onUpdated={update}
+                          position={() => loadLocal(key + ":scroll:" + id, 0)}
+                          onScroll={(n) => saveLocal(key + ":scroll:" + id, n)}
+                        />
+                      )}
                     </div>
                   ),
               )}

@@ -15,11 +15,13 @@ export function BranchControls({
   session,
   open,
   material,
+  node,
 }: {
   project: string;
   session: string;
   open: (id: string) => void;
   material: string | null;
+  node: string | null;
 }) {
   const api = "projects/" + project + "/exploration";
   const [rows, setRows] = useState<ExploreSession[]>([]),
@@ -67,7 +69,9 @@ export function BranchControls({
           e.preventDefault();
           void act(async () => {
             const id = await request(api, {
-              action: "open",
+              action: node ? "anchor" : "open",
+              anchor_node: node,
+              anchor_turn: null,
               parent: session,
               material,
               mini: false,

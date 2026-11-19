@@ -1,3 +1,4 @@
+import { nodeReference } from "@/modules/knowledge/server";
 import { sourceReference } from "@/modules/sources/server";
 import { z } from "zod";
 import { backend, Problem } from "@/server/database/backend";
@@ -12,7 +13,7 @@ export async function chat(
 ) {
   const target = z.uuid().parse(id);
   const projects = await listProjects(rpc);
-  let miniMaterial:string|null=null;
+  let miniMaterial: string | null = null;
   let project = projects.find((p) => p.session_id === target);
   if (!project) {
     for (const item of projects) {
@@ -20,10 +21,10 @@ export async function chat(
         "explore_sessions",
         { target: item.id },
         false,
-      )) as { id: string;kind:string;material_id:string|null }[];
-      const found=rows.find(row=>row.id===target);
+      )) as { id: string; kind: string; material_id: string | null }[];
+      const found = rows.find((row) => row.id === target);
       if (found) {
-        if(found.kind==="mini")miniMaterial=found.material_id;
+        if (found.kind === "mini") miniMaterial = found.material_id;
         project = item;
         break;
       }
@@ -34,34 +35,57 @@ export async function chat(
   const history = async () =>
     (await rpc("chat_history", { target }, false)) as Turn[];
   if (req.method === "GET") return Response.json(await history());
-  const { text, client_message_id, search_mode, explicit_ref } = z
-    .object({
-      text: z.string().trim().min(1).max(12000),
-      client_message_id: z.uuid(),
-      explicit_ref: z.uuid().optional(),
-      search_mode: z.enum(["auto", "off", "required"]),
-    })
-    .strict()
-    .parse(await req.json());
+  const { text, client_message_id, search_mode, explicit_ref, explicit_node } =
+    z
+      .object({
+        text: z.string().trim().min(1).max(12000),
+        client_message_id: z.uuid(),
+        explicit_node: z.uuid().optional(),
+        explicit_ref: z.uuid().optional(),
+        search_mode: z.enum(["auto", "off", "required"]),
+      })
+      .strict()
+      .parse(await req.json());
   const previous = (await history()).find((t) => t.id === client_message_id);
   const priorRef = previous?.metadata.explicit_ref;
   if (previous && explicit_ref && explicit_ref !== priorRef)
     throw new Problem(409, "기존 질문의 자료 참조가 일치하지 않습니다.");
-  if(miniMaterial && ((explicit_ref && explicit_ref!==miniMaterial)||search_mode==="auto"))throw new Problem(400,"미니 세션은 열린 원문과 명시한 검색만 사용할 수 있습니다.");
+  if (
+    miniMaterial &&
+    ((explicit_ref && explicit_ref !== miniMaterial) || search_mode === "auto")
+  )
+    throw new Problem(
+      400,
+      "미니 세션은 열린 원문과 명시한 검색만 사용할 수 있습니다.",
+    );
   const refId = explicit_ref ?? priorRef ?? miniMaterial;
-  const reference = refId
-    ? await sourceReference(rpc, project.id, refId)
-    : undefined;
+  const nodeId = explicit_node ?? previous?.metadata.explicit_node;
+  if (
+    (refId && nodeId) ||
+    (previous &&
+      explicit_node &&
+      explicit_node !== previous.metadata.explicit_node)
+  )
+    throw new Problem(409, "참조 대상이 일치하지 않습니다.");
+  const reference = nodeId
+    ? await nodeReference(rpc, project.id, nodeId)
+    : refId
+      ? await sourceReference(rpc, project.id, refId)
+      : undefined;
   const attempt = crypto.randomUUID();
   const state = await rpc(
-    reference ? "begin_source_turn" : "begin_turn",
+    nodeId ? "begin_node_turn" : reference ? "begin_source_turn" : "begin_turn",
     {
       target,
       turn: client_message_id,
       attempt,
       body: text,
       search: search_mode,
-      ...(reference ? { material: reference.id } : {}),
+      ...(nodeId
+        ? { node: nodeId }
+        : reference
+          ? { material: reference.id }
+          : {}),
     },
     true,
   );
@@ -106,7 +130,8 @@ export async function chat(
           if (related.length)
             details.related_records = related.map((r) => r.id);
           if (reference) {
-            details.explicit_ref = reference.id;
+            if (nodeId) details.explicit_node = nodeId;
+            else details.explicit_ref = reference.id;
             details.explicit_ref_title = reference.title;
           }
           if (!answer.trim()) throw Error("empty");
@@ -139,7 +164,9 @@ export async function chat(
                 error,
                 ...(reference
                   ? {
-                      explicit_ref: reference.id,
+                      ...(nodeId
+                        ? { explicit_node: nodeId }
+                        : { explicit_ref: reference.id }),
                       explicit_ref_title: reference.title,
                     }
                   : {}),

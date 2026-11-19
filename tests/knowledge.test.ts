@@ -89,3 +89,97 @@ test("증분 갱신 선점, 중복 및 다른 프로젝트 격리, 충돌 승인
   expect((await state()).changes[0].accepted).toBe("증가");
   vi.unstubAllEnvs();
 });
+
+test("메시지 및 결과물 분기의 근거와 사용자 편집/분류 이력", async () => {
+  const target = crypto.randomUUID(),
+    parent = await rpc(
+      "create_project",
+      { request_id: target, project_name: "편집", project_purpose: "" },
+      true,
+    );
+  const turn = crypto.randomUUID(),
+    attempt = crypto.randomUUID();
+  await rpc(
+    "begin_turn",
+    { target: parent, turn, attempt, body: "관찰", search: "off" },
+    true,
+  );
+  await rpc(
+    "finish_turn",
+    { attempt, outcome: "completed", body: "과정 보존", details: {} },
+    true,
+  );
+  const args = {
+    target,
+    parent,
+    label: "기록 출발",
+    request_id: crypto.randomUUID(),
+    anchor_turn: turn,
+    anchor_node: null,
+  };
+  expect(await rpc("anchored_branch", args, true)).toBe(args.request_id);
+  const job = crypto.randomUUID();
+  await rpc("claim_knowledge", { target, job, manual: true }, false);
+  await rpc(
+    "commit_knowledge",
+    {
+      target,
+      job,
+      decision: {
+        action: "new",
+        title: "관찰",
+        topic: "기록",
+        body: "과정 보존",
+        quote: "과정",
+        reason: "관찰 근거",
+      },
+    },
+    true,
+  );
+  const state = async () =>
+    (await rpc("knowledge_state", { target }, true)) as KnowledgeState;
+  const n = (await state()).nodes[0];
+  const child = crypto.randomUUID();
+  expect(
+    await rpc(
+      "anchored_branch",
+      { ...args, request_id: child, anchor_turn: null, anchor_node: n.id },
+      true,
+    ),
+  ).toBe(child);
+  expect(
+    await rpc(
+      "edit_knowledge",
+      {
+        target,
+        node: n.id,
+        expected: n.revision,
+        content: "새 본문",
+        category: "재분류",
+        separate: null,
+        new_title: "",
+      },
+      true,
+    ),
+  ).toBe("saved");
+  const after = await state();
+  expect(after.edits?.[0].previous.body).toBe("과정 보존");
+  expect(after.nodes[0].topic).toBe("재분류");
+  expect(
+    await rpc(
+      "edit_knowledge",
+      {
+        target,
+        node: n.id,
+        expected: 2,
+        content: "사용자가 남긴 기록",
+        category: "재분류",
+        separate: after.changes[0].id,
+        new_title: "분리 결과",
+      },
+      true,
+    ),
+  ).toBe("saved");
+  expect((await state()).nodes.length).toBe(2);
+  expect((await state()).changes[0].original_node).toBe(n.id);
+});

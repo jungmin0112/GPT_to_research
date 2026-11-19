@@ -15,7 +15,11 @@ export async function streamTurn(
       text: question,
       client_message_id: id,
       search_mode: search,
-      ...(ref ? { explicit_ref: ref } : {}),
+      ...(ref?.startsWith("node:")
+        ? { explicit_node: ref.slice(5) }
+        : ref
+          ? { explicit_ref: ref }
+          : {}),
     }),
   });
   if (!res.ok) throw Error((await res.json()).error.message);

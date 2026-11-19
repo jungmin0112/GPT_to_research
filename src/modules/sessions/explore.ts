@@ -7,6 +7,14 @@ export async function exploration(req: Request, project: string, rpc: Rpc) {
   const data = z
     .discriminatedUnion("action", [
       z.object({
+        action: z.literal("anchor"),
+        parent: z.uuid(),
+        label: z.string().trim().min(1).max(120),
+        request_id: z.uuid(),
+        anchor_turn: z.uuid().nullable(),
+        anchor_node: z.uuid().nullable(),
+      }),
+      z.object({
         action: z.literal("open"),
         parent: z.uuid().nullable(),
         material: z.uuid().nullable(),
@@ -43,7 +51,11 @@ export async function exploration(req: Request, project: string, rpc: Rpc) {
   const { action, ...args } = data;
   return Response.json(
     await rpc(
-      action === "open" ? "open_exploration" : "forward_reading",
+      action === "anchor"
+        ? "anchored_branch"
+        : action === "open"
+          ? "open_exploration"
+          : "forward_reading",
       { target, ...args },
       true,
     ),
