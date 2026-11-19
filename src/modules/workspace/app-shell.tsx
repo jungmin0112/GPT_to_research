@@ -26,6 +26,7 @@ export default function Home() {
     () => setKnowledgeRevision((n) => n + 1),
     [],
   );
+  const [serverPending,setServerPending]=useState(false);
   const [screen, setScreen] = useState("chat");
   const [panel, setPanel] = useState("미니 세션");
   const [aux, setAux] = useState(false);
@@ -116,7 +117,9 @@ export default function Home() {
   useEffect(() => {
     async function init() {
       try {
-        setMock((await request("mode")).mock);
+        const mode=await request("mode");
+        setMock(mode.mock);
+        if(mode.serverPending){setServerPending(true);return;}
         await load();
       } catch (e) {
         if (!(e instanceof ApiError && e.status === 401))
@@ -248,7 +251,7 @@ export default function Home() {
       {error && <div role="alert">{error}</div>}
       {!ready ? (
         <main>불러오는 중…</main>
-      ) : !projects ? (
+      ) : serverPending ? (<main className="login card"><h1>연구 서버 연결 대기</h1><p>개인용 웹 주소가 준비되었습니다. 연구 서버가 연결되면 여기서 기존 Supabase 프로젝트와 ChatGPT 플랜을 사용할 수 있습니다.</p><Button onClick={()=>location.reload()}>연결 상태 다시 확인</Button></main>) : !projects ? (
         <main className="login card">
           <h1>연구 공간 로그인</h1>
           <form

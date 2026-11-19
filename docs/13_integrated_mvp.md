@@ -78,3 +78,7 @@ node --env-file=.env.local --conditions=react-server scripts/plan-vm.mjs move ow
 - 직접 등록한 자료와 웹 검색 자료를 확인하고 실제 플랜으로 미니 문답, 다 읽음, 수동 분석, 모델별 추론 설정, 인용 링크를 시험한다. 실제 결과는 모델과 계정 사용량에 따라 달라진다.
 - PC 전원을 끈 상태에서 서버 작업자 로그와 최근 갱신 활동을 확인한다. VM 재시작 후 원문·채팅·플랜 연결과 토큰 갱신을 확인한다.
 - 프로젝트별 결과물에서 Markdown과 PDF를 내려받는다. PDF는 한글 기기 폰트를 사용한 이미지 페이지이므로 PDF 본문 텍스트 선택과 검색은 지원하지 않는다. 텍스트 재사용에는 Markdown을 사용한다.
+
+## ChatGPT Sites 웹 주소
+
+Sites에는 이 앱의 실제 프로덕션 브라우저 화면과 HTTP Worker를 배포한다. 연결 전에는 서버 대기 상태가 표시된다. VM 준비 후 Sites 서버 환경 변수 RESEARCH_SERVER_ORIGIN을 VM의 HTTPS 원점으로 설정하고 VM의 PRIVATE_APP_HTTPS_ORIGIN에도 같은 VM 원점을 지정한다. Worker는 인증 쿠키를 Site 호스트에 저장하고 허용한 Supabase 세션 쿠키와 앱 요청만 VM에 전달한다. 개인용 Sites 접근 권한과 Supabase 소유자 인증이 모두 적용된다. OAuth 승인은 VM에서 진행한다.
