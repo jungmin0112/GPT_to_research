@@ -780,3 +780,4 @@ input[type="checkbox"] {
   display: inline;
   margin-right: 6px;
 }
+.comparison{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:1rem}.comparison>div,.catalog article{padding:.7rem;background:var(--surface);border-radius:8px;margin:.5rem 0}.graph-node{display:block;margin:6px 0}.react-flow{color:#222}.aux-scroll .node-preview{overflow-wrap:anywhere}.update-actions{display:flex;gap:10px;align-items:center}.knowledge-tools{max-height:18vh;overflow:auto}

@@ -20,7 +20,10 @@ async function handle(
     const post = req.method === "POST";
     const host = req.headers.get("host") || "";
     if (
-      (mockMode() || route.startsWith("plan/") || (route.endsWith("/chat")||route.endsWith("/updates"))) &&
+      (mockMode() ||
+        route.startsWith("plan/") ||
+        route.endsWith("/chat") ||
+        route.endsWith("/updates")) &&
       !/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host)
     )
       throw new Problem(403, "로컬 mock 전용입니다.");
@@ -50,12 +53,27 @@ async function handle(
       return Response.json({ ok: true });
     }
     const rpc = await backend();
-    const domain=/^projects\/([^/]+)\/(knowledge|updates|reviews)$/.exec(route);
-    if(domain){
-      if(domain[2]==="knowledge"&&!post)return await (await import("@/modules/knowledge/server")).knowledgeRoute(req,domain[1],rpc);
-      if(domain[2]==="updates"&&post)return await (await import("@/modules/updates/server")).updateRoute(req,domain[1],rpc);
-      if(domain[2]==="reviews"&&post)return await (await import("@/modules/conflicts/server")).reviewRoute(req,domain[1],rpc);
-      throw new Problem(405,"요청 방식을 확인하세요.");
+    if (route === "search" && !post)
+      return await (
+        await import("@/modules/search/server")
+      ).searchRoute(req, rpc);
+    const domain = /^projects\/([^/]+)\/(knowledge|updates|reviews)$/.exec(
+      route,
+    );
+    if (domain) {
+      if (domain[2] === "knowledge")
+        return await (
+          await import("@/modules/knowledge/server")
+        ).knowledgeRoute(req, domain[1], rpc);
+      if (domain[2] === "updates" && post)
+        return await (
+          await import("@/modules/updates/server")
+        ).updateRoute(req, domain[1], rpc);
+      if (domain[2] === "reviews" && post)
+        return await (
+          await import("@/modules/conflicts/server")
+        ).reviewRoute(req, domain[1], rpc);
+      throw new Problem(405, "요청 방식을 확인하세요.");
     }
     const explore = /^projects\/([^/]+)\/exploration$/.exec(route);
     if (explore)

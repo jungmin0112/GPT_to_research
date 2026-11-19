@@ -15,6 +15,7 @@ export function Chat({
   current,
   settings,
   attachments,
+  branchFrom,
   onOpenAttachment,
 }: {
   session: string;
@@ -22,6 +23,7 @@ export function Chat({
   onSaved: () => void;
   current?: { id: string; title: string; path: string };
   settings?: ReactNode;
+  branchFrom: (turn: string, title: string) => Promise<void>;
   attachments: (
     select: (doc: { id: string; title: string }) => void,
   ) => ReactNode;
@@ -156,17 +158,26 @@ export function Chat({
           <article key={t.id}>
             <h3>나</h3>
             <p className="user-question">{t.question}</p>
-            {t.metadata.explicit_ref && (
+            {(t.metadata.explicit_ref || t.metadata.explicit_node) && (
               <button
                 onClick={() =>
-                  onOpenAttachment(t.metadata.explicit_ref!).catch((e) =>
-                    setError(e.message),
-                  )
+                  onOpenAttachment(
+                    t.metadata.explicit_node
+                      ? "node:" + t.metadata.explicit_node
+                      : t.metadata.explicit_ref!,
+                  ).catch((e) => setError(e.message))
                 }
               >
                 첨부 자료 열기 · {t.metadata.explicit_ref_title || "원문"}
               </button>
             )}
+            <button
+              onClick={() =>
+                branchFrom(t.id, t.question).catch((e) => setError(e.message))
+              }
+            >
+              이 문답에서 분기
+            </button>
             <h3>연구 도우미</h3>
             {t.answer ? (
               <AnswerMarkdown text={t.answer} />
@@ -199,7 +210,9 @@ export function Chat({
                         t.question,
                         t.search_mode,
                         t.id,
-                        t.metadata.explicit_ref,
+                        t.metadata.explicit_node
+                          ? "node:" + t.metadata.explicit_node
+                          : t.metadata.explicit_ref,
                       )
                     }
                   >

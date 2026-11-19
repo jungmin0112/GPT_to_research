@@ -9,6 +9,7 @@ export type Citation = {
 export type Details = {
   explicit_ref_title?: string;
   related_records?: string[];
+  explicit_node?:string;
   explicit_ref?: string;
   webSearchUsed?: boolean;
   references?: Citation[];

@@ -21,6 +21,8 @@ export type Evidence = {
   };
 };
 export type Change = {
+  original_node?: string;
+  decided_at: string | null;
   id: string;
   node_id: string;
   event_id: string;
@@ -41,6 +43,14 @@ export type Change = {
 export type KnowledgeState = {
   nodes: NodeRecord[];
   changes: Change[];
+  edits?: {
+    id: string;
+    node_id: string;
+    previous: NodeRecord;
+    updated: NodeRecord;
+    created_at: string;
+    new_node: string | null;
+  }[];
   pending: number;
   failed: number;
 };
