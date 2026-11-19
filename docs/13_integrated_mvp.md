@@ -82,3 +82,5 @@ node --env-file=.env.local --conditions=react-server scripts/plan-vm.mjs move ow
 ## ChatGPT Sites 웹 주소
 
 Sites에는 이 앱의 실제 프로덕션 브라우저 화면과 HTTP Worker를 배포한다. 연결 전에는 서버 대기 상태가 표시된다. VM 준비 후 Sites 서버 환경 변수 RESEARCH_SERVER_ORIGIN을 VM의 HTTPS 원점으로 설정하고 VM의 PRIVATE_APP_HTTPS_ORIGIN에도 같은 VM 원점을 지정한다. Worker는 인증 쿠키를 Site 호스트에 저장하고 허용한 Supabase 세션 쿠키와 앱 요청만 VM에 전달한다. 개인용 Sites 접근 권한과 Supabase 소유자 인증이 모두 적용된다. OAuth 승인은 VM에서 진행한다.
+
+상시 Linux 서버용 systemd 서비스 두 개, Caddy 설정, HTTPS 인수 검사는 [서버 설치 절차](../hosting/vm/README.md)에 있다.

@@ -1,0 +1,24 @@
+[Unit]
+Description=GPT to search web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=gptsearch
+Group=gptsearch
+WorkingDirectory=/srv/gpt-to-search
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/var/lib/gpt-search
+EnvironmentFile=/etc/gpt-search/app.env
+StateDirectory=gpt-search
+StateDirectoryMode=0700
+UMask=0077
+ExecStart=/usr/bin/env node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
