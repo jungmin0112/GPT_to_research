@@ -11,10 +11,26 @@ export async function chat(
   rpc: Awaited<ReturnType<typeof backend>>,
 ) {
   const target = z.uuid().parse(id);
-  const project = (await listProjects(rpc)).find(
-    (p) => p.session_id === target,
-  );
+  const projects = await listProjects(rpc);
+  let miniMaterial:string|null=null;
+  let project = projects.find((p) => p.session_id === target);
+  if (!project) {
+    for (const item of projects) {
+      const rows = (await rpc(
+        "explore_sessions",
+        { target: item.id },
+        false,
+      )) as { id: string;kind:string;material_id:string|null }[];
+      const found=rows.find(row=>row.id===target);
+      if (found) {
+        if(found.kind==="mini")miniMaterial=found.material_id;
+        project = item;
+        break;
+      }
+    }
+  }
   if (!project) throw new Problem(404, "세션을 찾을 수 없습니다.");
+  const resolvedProject = project;
   const history = async () =>
     (await rpc("chat_history", { target }, false)) as Turn[];
   if (req.method === "GET") return Response.json(await history());
@@ -31,7 +47,8 @@ export async function chat(
   const priorRef = previous?.metadata.explicit_ref;
   if (previous && explicit_ref && explicit_ref !== priorRef)
     throw new Problem(409, "기존 질문의 자료 참조가 일치하지 않습니다.");
-  const refId = explicit_ref ?? priorRef;
+  if(miniMaterial && ((explicit_ref && explicit_ref!==miniMaterial)||search_mode==="auto"))throw new Problem(400,"미니 세션은 열린 원문과 명시한 검색만 사용할 수 있습니다.");
+  const refId = explicit_ref ?? priorRef ?? miniMaterial;
   const reference = refId
     ? await sourceReference(rpc, project.id, refId)
     : undefined;
@@ -69,8 +86,13 @@ export async function chat(
       try {
         emit("message.started", { userMessageId: client_message_id });
         if (state === "started") {
+          const related = (await rpc(
+            "related_records",
+            { target, question: text },
+            false,
+          )) as { id: string; session_id: string; answer: string }[];
           const details = await research(
-            project,
+            resolvedProject,
             await history(),
             search_mode,
             (chunk) => {
@@ -79,7 +101,10 @@ export async function chat(
             },
             () => emit("search.status", { status: "searching" }),
             reference,
+            related,
           );
+          if (related.length)
+            details.related_records = related.map((r) => r.id);
           if (reference) {
             details.explicit_ref = reference.id;
             details.explicit_ref_title = reference.title;

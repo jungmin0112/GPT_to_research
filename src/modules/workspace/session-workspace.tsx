@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { Chat } from "@/modules/sessions";
+import { Chat, BranchControls, type Reading } from "@/modules/sessions";
 import {
   MaterialLibrary,
   useCollection,
@@ -31,12 +31,18 @@ export function MaterialWorkspace({
   mock,
   screen,
   onChat,
+  onRead,
+  onBranch,
+  chatRevision,
 }: {
   project: string;
   session: string;
   name: string;
   mock: boolean;
   screen: string;
+  onRead: (doc: Reading) => void;
+  onBranch: (id: string) => void;
+  chatRevision: number;
   onChat: () => void;
 }) {
   const key = "workspace:" + session;
@@ -146,6 +152,14 @@ export function MaterialWorkspace({
   const current = docs[view.active];
   return (
     <>
+      {screen === "chat" && (
+        <BranchControls
+          project={project}
+          session={session}
+          material={current?.id ?? null}
+          open={onBranch}
+        />
+      )}
       {screen === "settings" && (
         <div className="settings-screen">
           {mock ? <p>로컬 테스트 계정</p> : <PlanSettings session={session} />}
@@ -176,6 +190,7 @@ export function MaterialWorkspace({
         }
       >
         <Chat
+          revision={chatRevision}
           session={session}
           attachments={(select) => (
             <MaterialLibrary
@@ -276,6 +291,9 @@ export function MaterialWorkspace({
                     >
                       <Reader
                         opened={docs[id]}
+                        onRead={(quote) =>
+                          onRead({ id, title: docs[id].title, quote })
+                        }
                         project={project}
                         close={() => close(id)}
                         onUpdated={update}

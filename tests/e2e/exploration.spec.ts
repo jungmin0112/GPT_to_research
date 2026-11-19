@@ -1,0 +1,24 @@
+import {expect,test} from "@playwright/test";
+test("문단 미니 세션에서 고른 문답을 메인에 전달하고 심화 세션 초안을 복원",async({page})=>{
+ await page.goto("/");await page.getByRole("button",{name:"테스트 계정 로그인"}).click();
+ await page.getByRole("button",{name:"새 프로젝트"}).click();await page.getByLabel("프로젝트 이름").fill("독해");
+ await page.getByRole("button",{name:"생성하고 열기"}).click();await expect(page.getByLabel("질문",{exact:true})).toBeVisible();
+ const [{id,session_id}]=await(await page.request.get("/api/projects")).json();
+ const source=await(await page.request.post("/api/projects/"+id+"/materials",{data:{kind:"text",title:"기록",text:"강수량은 증가했다.\n관측은 3일간 진행됐다."}})).json();
+ await page.goto("/?session="+session_id+"&material="+source.id);
+ await page.getByRole("button",{name:"문단 선택",exact:true}).click();
+ await page.getByRole("button",{name:"강수량은 증가했다."}).click();
+ await page.getByLabel("미니 세션 질문").fill("어떤 변화인가?");
+ await page.getByRole("button",{name:"미니 질문 보내기"}).click();
+ await page.getByRole("button",{name:"다 읽음"}).click();
+ await page.getByLabel("전달 선택").check();
+ await page.getByRole("button",{name:"선택한 문답을 메인에 전달"}).click();
+ await expect(page.locator(".user-question")).toContainText("어떤 변화인가?");
+ await page.getByText("심화 탐구 · 참조 설정").click();await page.getByLabel("심화 세션 제목").fill("후속 연구");
+ await page.getByRole("button",{name:"분기 생성"}).click();
+ await expect(page.getByRole("heading",{name:"심화 세션"})).toBeVisible();
+ await page.getByLabel("질문",{exact:true}).fill("분기 초안");await page.reload();
+ await expect(page.getByLabel("질문",{exact:true})).toHaveValue("분기 초안");
+ await page.getByText("심화 탐구 · 참조 설정").click();await page.getByRole("button",{name:"상위 세션으로 복귀"}).click();
+ await expect(page.locator(".user-question")).toContainText("어떤 변화인가?");
+});

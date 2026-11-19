@@ -11,12 +11,14 @@ import type { SearchMode, Turn } from "@/shared/types/conversation";
 export function Chat({
   session,
   onSaved,
+  revision,
   current,
   settings,
   attachments,
   onOpenAttachment,
 }: {
   session: string;
+  revision: number;
   onSaved: () => void;
   current?: { id: string; title: string; path: string };
   settings?: ReactNode;
@@ -72,7 +74,7 @@ export function Chat({
     return () => {
       current = false;
     };
-  }, [path]);
+  }, [path, revision]);
   // A refresh during a stream can leave another tab waiting for its final row.
   const working = turns?.at(-1)?.status === "working";
   useEffect(() => {
@@ -170,6 +172,14 @@ export function Chat({
               <AnswerMarkdown text={t.answer} />
             ) : (
               t.status === "working" && <p>답변 작성 중…</p>
+            )}
+            {!!t.metadata.related_records?.length && (
+              <details>
+                <summary>
+                  관련 기록 {t.metadata.related_records.length}개
+                </summary>
+                {t.metadata.related_records.join(", ")}
+              </details>
             )}
             {t.metadata.webSearchUsed && <small>웹 검색 사용</small>}
             {t.metadata.references?.map((ref, j) => (

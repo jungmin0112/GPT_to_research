@@ -12,14 +12,17 @@ export function Reader({
   onUpdated,
   position,
   onScroll,
+  onRead,
 }: {
   opened: Material;
   project: string;
   close: () => void;
   onUpdated: (doc: Material) => void;
   position: () => number;
+  onRead: (quote: string) => void;
   onScroll: (value: number) => void;
 }) {
+  const [selecting, setSelecting] = useState(false);
   const api = materialPath(project);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -47,6 +50,14 @@ export function Reader({
           원본 PDF 다운로드
         </a>
       )}
+      {opened.state === "ready" && (
+        <div>
+          <button onClick={() => setSelecting(!selecting)}>
+            {selecting ? "문단 선택 취소" : "문단 선택"}
+          </button>
+          <button onClick={() => onRead("")}>미니 세션 열기</button>
+        </div>
+      )}
       <div
         className="reader-scroll"
         tabIndex={0}
@@ -55,7 +66,25 @@ export function Reader({
         onScroll={(e) => onScroll(e.currentTarget.scrollTop)}
       >
         {opened.state === "ready" ? (
-          <div className="material-body">{opened.body}</div>
+          <div className="material-body">
+            {selecting
+              ? opened.body
+                  .split(/\n+/)
+                  .filter(Boolean)
+                  .map((p, i) => (
+                    <button
+                      className="paragraph-choice"
+                      key={i}
+                      onClick={() => {
+                        onRead(p.slice(0, 5500));
+                        setSelecting(false);
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))
+              : opened.body}
+          </div>
         ) : (
           <>
             <p>{opened.note || "원문 본문을 아직 수집하지 않았습니다."}</p>

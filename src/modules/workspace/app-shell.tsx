@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { MaterialWorkspace } from "./session-workspace";
+import { MiniReading, type Reading } from "@/modules/sessions";
 import { SessionGraph } from "@/modules/graphs";
 import { loadLocal, saveLocal } from "@/shared/lib/session-storage";
 import { ApiError, request } from "@/shared/lib/request";
@@ -13,6 +14,9 @@ export default function Home() {
     [mock, setMock] = useState(false);
   const [active, setActive] = useState(""),
     [drawer, setDrawer] = useState(false);
+  const [focus, setFocus] = useState(""),
+    [reading, setReading] = useState<Reading | null>(null),
+    [version, setVersion] = useState(0);
   const [screen, setScreen] = useState("chat");
   const [panel, setPanel] = useState("미니 세션");
   const [aux, setAux] = useState(false);
@@ -27,6 +31,7 @@ export default function Home() {
     const session = new URLSearchParams(location.search).get("session");
     const view = new URLSearchParams(location.search).get("view");
     setScreen(view === "settings" || view === "library" ? view : "chat");
+    setFocus(new URLSearchParams(location.search).get("focus") || "");
     setActive(list.find((p) => p.session_id === session)?.session_id || "");
     setAux(loadLocal("panel-open:" + session, false));
     setPanel(loadLocal("panel:" + session, "미니 세션"));
@@ -70,7 +75,20 @@ export default function Home() {
     else url.searchParams.set("view", next);
     history.replaceState(null, "", url);
   }
+  function branch(id: string) {
+    const next = id === active ? "" : id;
+    setFocus(next);
+    setReading(null);
+    navigate("chat");
+    const u = new URL(location.href);
+    u.searchParams.delete("material");
+    if (next) u.searchParams.set("focus", next);
+    else u.searchParams.delete("focus");
+    history.replaceState(null, "", u);
+  }
   function select(id: string) {
+    setReading(null);
+    setFocus("");
     navigate("chat");
     setActive(id);
     setAux(loadLocal("panel-open:" + id, false));
@@ -205,7 +223,7 @@ export default function Home() {
               {project && (
                 <>
                   <strong>{project.name}</strong>
-                  <button onClick={() => navigate("chat")}>메인 세션</button>
+                  <button onClick={() => branch(active)}>메인 세션</button>
                   <button onClick={() => navigate("library")}>자료함</button>
                   <button onClick={() => navigate("settings")}>설정</button>
                 </>
@@ -238,18 +256,27 @@ export default function Home() {
                     ? "프로젝트 자료함"
                     : screen === "settings"
                       ? "설정"
-                      : "메인 세션"}
+                      : focus
+                        ? "심화 세션"
+                        : "메인 세션"}
                 </h1>
                 <p>{project.purpose}</p>
 
                 <MaterialWorkspace
-                  key={project.session_id}
+                  key={focus || project.session_id}
                   name={project.name}
                   screen={screen}
                   onChat={() => navigate("chat")}
                   mock={mock}
                   project={project.id}
-                  session={project.session_id}
+                  session={focus || project.session_id}
+                  onBranch={branch}
+                  chatRevision={version}
+                  onRead={(doc) => {
+                    setReading(doc);
+                    setPanel("미니 세션");
+                    setAux(true);
+                  }}
                 />
               </section>
             )}
@@ -281,10 +308,21 @@ export default function Home() {
                       saveLocal("panel-open:" + id, false);
                     }}
                   />
+                ) : panel === "미니 세션" && reading ? (
+                  <MiniReading
+                    key={reading.id}
+                    project={project.id}
+                    doc={reading}
+                    onForward={() => {
+                      branch(active);
+                      setVersion((v) => v + 1);
+                      setAux(false);
+                    }}
+                  />
                 ) : (
                   <p>
                     {panel === "미니 세션"
-                      ? "원문별 미니 세션은 다음 단계에서 제공됩니다."
+                      ? "원문에서 문단을 선택하거나 미니 세션을 여세요."
                       : panel === "결과물 그래프"
                         ? "등록된 결과물이 없습니다."
                         : project.name + " · 메인 세션"}
