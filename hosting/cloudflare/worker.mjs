@@ -210,7 +210,7 @@ export async function tick(env) {
     await post("logout", {}, jar);
   }
 }
-export default {
+const worker = {
   async fetch(req, env) {
     const p = new URL(req.url).pathname;
     if (req.method === "GET" && (p === "/" || p === "/client.js"))
@@ -240,3 +240,5 @@ export default {
     );
   },
 };
+
+export default worker;

@@ -23,3 +23,5 @@ Workers Free의 CPU 시간은 HTTP 또는 예약 호출당 10ms, 외부 하위 �
 `node --test hosting/cloudflare/worker.test.mjs hosting/sites/worker.test.mjs`로 모의 인증 서버를 통한 세션 갱신, 소유자 거부, Sites 쿠키 전달, 증분 갱신 인자를 검사한다. 실제 계정 인수는 각 HTTPS 주소에서 로그인 후 보이는 목록과 재조회, 로그아웃 후 401로 확인한다.
 
 Next.js 프로덕션 빌드는 통과한다. 원래 앱은 PDF 추출을 위해 child_process.execFile을 호출하고, 플랜 OAuth에 로컬 포트 리스너와 영구 파일 금고를 쓴다. 로컬 workerd의 nodejs_compat 모드에서 child_process 실행이 미구현으로 반환되는 것을 확인했다. 전체 서버 호환 판정과 테스트 어댑터의 배포 결과는 별개다.
+
+별도로 설치한 workerd 바이너리 경로를 WORKERD_BIN에 설정하고 `node hosting/cloudflare/tests/workerd.mjs`를 실행하면 실제 Workers 런타임에서 익명 401, 테스트 Supabase 로그인, 쿠키 두 개, 인증 후 프로젝트 조회를 확인한다. 대체 인증 서비스는 프로세스 안에서만 접근한다.
