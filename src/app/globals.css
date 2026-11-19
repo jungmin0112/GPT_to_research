@@ -756,3 +756,27 @@ body > header {
   flex: 1;
   height: auto;
 }
+.branch-tools {
+  position: relative;
+  flex: none;
+  max-height: 30vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.paragraph-choice {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+.aux-scroll article,
+.aux-scroll blockquote {
+  margin: 10px 0;
+  padding: 8px;
+  border-left: 2px solid var(--line);
+  overflow-wrap: anywhere;
+}
+input[type="checkbox"] {
+  width: auto;
+  display: inline;
+  margin-right: 6px;
+}

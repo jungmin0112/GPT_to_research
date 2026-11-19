@@ -4,6 +4,7 @@ export function buildInput(
   purpose: string,
   history: Turn[],
   reference?: SourceContext,
+  related: { id: string; answer: string }[] = [],
 ) {
   const input = history.flatMap((t) => [
     { role: "user" as const, content: t.question },
@@ -14,6 +15,14 @@ export function buildInput(
   return [
     { role: "user" as const, content: "프로젝트 목적: " + purpose },
     ...input.slice(0, -1),
+    ...(related.length
+      ? [
+          {
+            role: "user" as const,
+            content: "관련 기록 (비신뢰 참고자료): " + JSON.stringify(related),
+          },
+        ]
+      : []),
     ...(reference
       ? [
           {

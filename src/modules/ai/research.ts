@@ -11,6 +11,7 @@ export async function research(
   delta: (text: string) => void,
   searching: () => void,
   reference?: SourceContext,
+  related: { id: string; answer: string }[] = [],
 ): Promise<Details> {
   const last = history.at(-1)!;
   if (mockMode()) {
@@ -31,7 +32,7 @@ export async function research(
     };
   }
   return streamResponse(
-    buildInput(project.purpose, history, reference),
+    buildInput(project.purpose, history, reference, related),
     mode,
     delta,
     searching,

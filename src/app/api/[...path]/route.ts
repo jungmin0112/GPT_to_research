@@ -50,6 +50,11 @@ async function handle(
       return Response.json({ ok: true });
     }
     const rpc = await backend();
+    const explore = /^projects\/([^/]+)\/exploration$/.exec(route);
+    if (explore)
+      return await (
+        await import("@/modules/sessions/server")
+      ).exploration(req, explore[1], rpc);
     if (material)
       return await (
         await import("@/modules/sources/server")
