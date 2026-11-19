@@ -7,6 +7,7 @@ export type Citation = {
   end?: number;
 };
 export type Details = {
+  explicit_ref_title?: string;
   explicit_ref?: string;
   webSearchUsed?: boolean;
   references?: Citation[];

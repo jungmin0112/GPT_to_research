@@ -23,7 +23,9 @@ test("기존 답변 소급 등록, 출처 역할·중복·프로젝트 격리, P
     project = crypto.randomUUID(),
     other = crypto.randomUUID();
   try {
-    await db.exec(await readFile("src/server/database/mock-bootstrap.sql", "utf8"));
+    await db.exec(
+      await readFile("src/server/database/mock-bootstrap.sql", "utf8"),
+    );
     await db.exec(await readFile("tests/fixtures/storage-schema.sql", "utf8"));
     const files = (await readdir("supabase/migrations"))
       .filter((n) => n.endsWith(".sql"))
@@ -58,14 +60,44 @@ test("기존 답변 소급 등록, 출처 역할·중복·프로젝트 격리, P
       attempt,
       { references: refs },
     ]);
+    // A chat-only installation lacks both original library RPCs.
+    for (const statement of [
+      "select * from list_materials($1,0)",
+      "select * from claim_material($1,gen_random_uuid())",
+    ]) {
+      await expect(db.query(statement, [project])).rejects.toMatchObject({
+        code: "42883",
+      });
+    }
     for (const f of files.filter((n) => n.startsWith("20261119")))
       await apply(f);
+    const diagnosis = await db.query<{ status: string }>(
+      await readFile("supabase/check-material-library.sql", "utf8"),
+    );
+    expect(diagnosis.rows.length).toBe(11);
+    expect(diagnosis.rows.every((row) => row.status === "ready")).toBe(true);
     await db.exec("set role authenticated");
     const list = () =>
       db.query<{ id: string; cited: boolean; candidate: boolean }>(
         "select * from list_materials($1,0)",
         [project],
       );
+    expect(
+      (
+        await db.query(
+          "select * from search_materials($1,0,'example.org','url')",
+          [project],
+        )
+      ).rows,
+    ).toHaveLength(2);
+    expect(
+      (
+        await db.query(
+          "select * from search_materials($1,0,'example.org','pdf')",
+          [project],
+        )
+      ).rows,
+    ).toHaveLength(0);
     const rows = (await list()).rows;
     expect(rows).toHaveLength(2);
     expect(rows.filter((r) => r.candidate)).toHaveLength(2);

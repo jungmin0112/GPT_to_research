@@ -147,9 +147,17 @@ export async function materials(
   if (req.method === "GET")
     return Response.json(
       await rpc(
-        "list_materials",
+        "search_materials",
         {
           target: project,
+          query_text: z
+            .string()
+            .max(500)
+            .parse(params.get("q") || "")
+            .trim(),
+          source_type: z
+            .enum(["", "text", "pdf", "url"])
+            .parse(params.get("kind") || ""),
           page_offset: z.coerce
             .number()
             .int()
