@@ -6,6 +6,7 @@ const states = {
 };
 export function labels(row: MaterialRow) {
   return [
+    (row.cited || row.candidate) && "웹 검색",
     row.manual &&
       { url: "등록 URL", pdf: "업로드 PDF", text: "입력 텍스트" }[row.kind],
     row.cited && "답변 인용",

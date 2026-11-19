@@ -80,7 +80,10 @@ export async function chat(
             () => emit("search.status", { status: "searching" }),
             reference,
           );
-          if (reference) details.explicit_ref = reference.id;
+          if (reference) {
+            details.explicit_ref = reference.id;
+            details.explicit_ref_title = reference.title;
+          }
           if (!answer.trim()) throw Error("empty");
           if (
             !(await rpc(
@@ -109,7 +112,12 @@ export async function chat(
               body: answer,
               details: {
                 error,
-                ...(reference ? { explicit_ref: reference.id } : {}),
+                ...(reference
+                  ? {
+                      explicit_ref: reference.id,
+                      explicit_ref_title: reference.title,
+                    }
+                  : {}),
               },
             },
             true,

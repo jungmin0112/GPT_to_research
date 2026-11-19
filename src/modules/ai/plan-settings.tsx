@@ -11,20 +11,32 @@ type State = {
     model?: string;
   }[];
 };
-export function PlanSettings({ session }: { session: string }) {
+export function PlanSettings({
+  session,
+  modelOnly = false,
+}: {
+  session: string;
+  modelOnly?: boolean;
+}) {
   const [state, setState] = useState<State>(),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<{ id: string; name: string }[]>([]),
     [selected, setSelected] = useState("");
-  const apply = useCallback(async (data: State) => {
-    setState(data);
-    if (data.accounts.find((a) => a.client === data.active)?.connected) {
-      const choices = await request("plan/models");
-      setCatalog(choices.catalog);
-      setSelected(choices.selected ?? choices.catalog[0]?.id ?? "");
-    }
-  }, []);
+  const apply = useCallback(
+    async (data: State) => {
+      setState(data);
+      if (
+        modelOnly &&
+        data.accounts.find((a) => a.client === data.active)?.connected
+      ) {
+        const choices = await request("plan/models");
+        setCatalog(choices.catalog);
+        setSelected(choices.selected ?? choices.catalog[0]?.id ?? "");
+      }
+    },
+    [modelOnly],
+  );
   useEffect(() => {
     request("plan/status")
       .then(apply)
@@ -40,6 +52,35 @@ export function PlanSettings({ session }: { session: string }) {
       setError((e as Error).message);
     }
   }
+  if (modelOnly)
+    return (
+      <div className="model-choice">
+        {" "}
+        {active?.connected ? (
+          <label>
+            플랜 모델
+            <select
+              value={selected}
+              onChange={(e) => {
+                const model = e.target.value;
+                void act(async () => {
+                  await request("plan/models", { model });
+                });
+              }}
+            >
+              {catalog.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <small>설정에서 ChatGPT 계정을 연결하세요.</small>
+        )}
+        {error && <p role="alert">{error}</p>}
+      </div>
+    );
   return (
     <section className="plan">
       <h3>ChatGPT 플랜</h3>
@@ -88,26 +129,6 @@ export function PlanSettings({ session }: { session: string }) {
         )}
         <button className="plan-login">Continue with ChatGPT</button>
       </form>
-      {active?.connected && (
-        <label>
-          플랜 모델
-          <select
-            value={selected}
-            onChange={(e) => {
-              const model = e.target.value;
-              void act(async () => {
-                await request("plan/models", { model });
-              });
-            }}
-          >
-            {catalog.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
       {active && (
         <button
           onClick={() =>

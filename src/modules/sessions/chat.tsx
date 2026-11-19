@@ -13,12 +13,19 @@ export function Chat({
   onSaved,
   current,
   settings,
+  attachments,
+  onOpenAttachment,
 }: {
   session: string;
   onSaved: () => void;
   current?: { id: string; title: string; path: string };
   settings?: ReactNode;
+  attachments: (
+    select: (doc: { id: string; title: string }) => void,
+  ) => ReactNode;
+  onOpenAttachment: (id: string) => Promise<void>;
 }) {
+  const [picking, setPicking] = useState(false);
   const path = "sessions/" + session + "/chat";
   const [turns, setTurns] = useState<Turn[] | null>(null),
     [error, setError] = useState("");
@@ -147,6 +154,17 @@ export function Chat({
           <article key={t.id}>
             <h3>나</h3>
             <p className="user-question">{t.question}</p>
+            {t.metadata.explicit_ref && (
+              <button
+                onClick={() =>
+                  onOpenAttachment(t.metadata.explicit_ref!).catch((e) =>
+                    setError(e.message),
+                  )
+                }
+              >
+                첨부 자료 열기 · {t.metadata.explicit_ref_title || "원문"}
+              </button>
+            )}
             <h3>연구 도우미</h3>
             {t.answer ? (
               <AnswerMarkdown text={t.answer} />
@@ -189,13 +207,26 @@ export function Chat({
           </article>
         )}
       </div>
+      {picking && (
+        <section
+          role="dialog"
+          aria-label="자료 첨부"
+          className="attachment-picker"
+        >
+          <button onClick={() => setPicking(false)}>닫기</button>
+          {attachments((doc) => {
+            setPin({ id: doc.id, title: doc.title });
+            setPicking(false);
+          })}
+        </section>
+      )}
       {settings}
       <form
         className="composer"
         onSubmit={(e) => {
           e.preventDefault();
           const draft = text.trim();
-          if (!draft) return;
+          if (!draft || picking || sending || working) return;
           const old = pending.current;
           void send(
             draft,
@@ -254,7 +285,7 @@ export function Chat({
               }
             }}
             value={text}
-            disabled={sending}
+            disabled={sending || picking}
             onChange={(e) => setText(e.target.value)}
             maxLength={12000}
             placeholder="무엇을 조사할까요?"
@@ -262,6 +293,15 @@ export function Chat({
           />
         </label>
         <div className="actions">
+          <button
+            type="button"
+            aria-label="자료 첨부"
+            aria-expanded={picking}
+            disabled={sending}
+            onClick={() => setPicking((v) => !v)}
+          >
+            ＋
+          </button>
           <label>
             웹 검색
             <select
@@ -274,7 +314,9 @@ export function Chat({
               <option value="required">검색 요청</option>
             </select>
           </label>
-          <Button disabled={!text.trim() || sending || working || !turns}>
+          <Button
+            disabled={!text.trim() || picking || sending || working || !turns}
+          >
             전송
           </Button>
         </div>

@@ -84,8 +84,21 @@ export async function backend() {
   ) => {
     void scalar;
     const { data, error } = await client.rpc(name, args);
-    if (error)
-      throw new Problem(503, "데이터 저장소 요청을 완료하지 못했습니다.");
+    if (error) {
+      const code = /^(?:[A-Z0-9]{5}|PGRST[0-9]{3})$/.test(error.code)
+        ? error.code
+        : "UNKNOWN";
+      console.error("Supabase RPC", name, code);
+      const reason = ["42883", "42P01", "PGRST202", "PGRST205"].includes(code)
+        ? "해당 DB 객체를 찾을 수 없습니다. 미적용 마이그레이션과 PostgREST 스키마 캐시를 확인하세요."
+        : code === "42501"
+          ? "DB 실행 권한과 소유자 정책을 확인하세요."
+          : "데이터 저장소 요청을 완료하지 못했습니다.";
+      throw new Problem(
+        code === "42501" ? 403 : 503,
+        reason + " (" + name + " · " + code + ")",
+      );
+    }
     return data;
   };
 }

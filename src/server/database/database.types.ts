@@ -310,6 +310,24 @@ export type Database = {
           title: string;
         }[];
       };
+      search_materials: {
+        Args: {
+          page_offset: number;
+          query_text: string;
+          source_type: string;
+          target: string;
+        };
+        Returns: {
+          candidate: boolean;
+          cited: boolean;
+          id: string;
+          kind: string;
+          manual: boolean;
+          origin: string;
+          state: string;
+          title: string;
+        }[];
+      };
       material_url_key: { Args: { link: string }; Returns: string };
       project_list: {
         Args: Record<PropertyKey, never>;
