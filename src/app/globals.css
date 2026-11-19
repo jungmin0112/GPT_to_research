@@ -232,42 +232,6 @@ header button {
   margin: 0;
   overflow-wrap: anywhere;
 }
-.library {
-  margin: 4px 0;
-  align-self: flex-start;
-  max-width: 100%;
-  font-size: 14px;
-}
-.library summary,
-.model-settings summary {
-  color: var(--muted);
-  width: fit-content;
-  font-size: 13px;
-}
-.library[open] {
-  z-index: 3;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--curve);
-  padding: 8px 14px;
-  max-height: 45vh;
-  overflow: auto;
-  width: min(600px, 100%);
-}
-.library form {
-  padding: 8px 0;
-}
-.library li {
-  padding: 6px 0;
-  border-top: 1px solid var(--line);
-  overflow-wrap: anywhere;
-}
-.library li button {
-  text-align: left;
-}
-.library small {
-  display: block;
-}
 .desk {
   flex: 1;
   min-height: 0;
@@ -370,22 +334,9 @@ header button {
 .composer button[type="button"] {
   font-size: 13px;
 }
-.model-settings {
-  position: relative;
-  align-self: flex-start;
-}
 .plan {
-  position: absolute;
-  z-index: 5;
-  bottom: 100%;
-  width: min(340px, 80vw);
-  max-height: 50vh;
-  overflow: auto;
-  background: var(--raised);
-  padding: 16px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--line);
-  border-radius: var(--curve);
+  width: min(100%, 480px);
+  padding: 12px 0;
 }
 .plan-login {
   background: var(--action) !important;
@@ -647,4 +598,161 @@ aside > h2 {
       opacity: 1;
     }
   }
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+body > header {
+  flex: none;
+}
+.workspace {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.workspace main {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.session {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.desk[hidden] {
+  display: none;
+}
+.chat,
+.documents,
+.panes {
+  min-height: 0;
+  overflow: hidden;
+}
+.transcript,
+.reader-scroll,
+.aux-scroll,
+.catalog,
+.settings-screen,
+.attachment-picker {
+  overscroll-behavior: contain;
+}
+.workspace aside {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.aux-scroll,
+.reader-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.material-reader {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.material-reader > button {
+  align-self: flex-end;
+}
+.material-reader > p {
+  max-height: 4.5em;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.workspace nav {
+  overscroll-behavior: contain;
+}
+.catalog,
+.settings-screen {
+  overflow: auto;
+  min-height: 0;
+  padding: 12px;
+  max-width: 900px;
+}
+.catalog h2 {
+  margin-bottom: 12px;
+}
+.catalog-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 18px 0 8px;
+}
+.catalog-filter label:first-child {
+  flex: 1;
+  min-width: 130px;
+}
+.catalog li {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.catalog small {
+  display: block;
+}
+.registration {
+  padding: 8px;
+  background: var(--surface);
+  border-radius: 10px;
+}
+.attachment-picker {
+  position: absolute;
+  z-index: 5;
+  bottom: 15%;
+  left: 0;
+  width: min(480px, 100%);
+  max-height: 70%;
+  overflow: auto;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  border-radius: 12px;
+  padding: 10px;
+}
+.attachment-picker > button {
+  float: right;
+}
+.model-choice {
+  flex: none;
+}
+.model-choice label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.model-choice select {
+  width: auto;
+  max-width: 75%;
+}
+.login {
+  overflow: auto;
+}
+.session > p:not(.eyebrow) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: none;
+}
+.reader-expanded.desk:not([hidden]) {
+  display: flex;
+}
+.reader-expanded > .chat {
+  display: none;
+}
+.reader-expanded > .documents {
+  flex: 1;
+  height: auto;
 }

@@ -13,6 +13,7 @@ export default function Home() {
     [mock, setMock] = useState(false);
   const [active, setActive] = useState(""),
     [drawer, setDrawer] = useState(false);
+  const [screen, setScreen] = useState("chat");
   const [panel, setPanel] = useState("미니 세션");
   const [aux, setAux] = useState(false);
   const [dark, setDark] = useState(false);
@@ -24,6 +25,8 @@ export default function Home() {
     const list: Project[] = await request("projects");
     setProjects(list);
     const session = new URLSearchParams(location.search).get("session");
+    const view = new URLSearchParams(location.search).get("view");
+    setScreen(view === "settings" || view === "library" ? view : "chat");
     setActive(list.find((p) => p.session_id === session)?.session_id || "");
     setAux(loadLocal("panel-open:" + session, false));
     setPanel(loadLocal("panel:" + session, "미니 세션"));
@@ -59,7 +62,16 @@ export default function Home() {
       setBusy(false);
     }
   }
+  function navigate(next: string) {
+    setScreen(next);
+    setDrawer(false);
+    const url = new URL(location.href);
+    if (next === "chat") url.searchParams.delete("view");
+    else url.searchParams.set("view", next);
+    history.replaceState(null, "", url);
+  }
   function select(id: string) {
+    navigate("chat");
     setActive(id);
     setAux(loadLocal("panel-open:" + id, false));
     setPanel(loadLocal("panel:" + id, "미니 세션"));
@@ -189,7 +201,15 @@ export default function Home() {
             />
           )}
           {drawer && (
-            <nav>
+            <nav aria-label="프로젝트 탐색">
+              {project && (
+                <>
+                  <strong>{project.name}</strong>
+                  <button onClick={() => navigate("chat")}>메인 세션</button>
+                  <button onClick={() => navigate("library")}>자료함</button>
+                  <button onClick={() => navigate("settings")}>설정</button>
+                </>
+              )}
               <Button variant="secondary" onClick={() => select("")}>
                 프로젝트 홈
               </Button>
@@ -213,12 +233,20 @@ export default function Home() {
             ) : (
               <section className="session">
                 <p className="eyebrow">{project.name}</p>
-                <h1>메인 세션</h1>
+                <h1>
+                  {screen === "library"
+                    ? "프로젝트 자료함"
+                    : screen === "settings"
+                      ? "설정"
+                      : "메인 세션"}
+                </h1>
                 <p>{project.purpose}</p>
 
                 <MaterialWorkspace
                   key={project.session_id}
                   name={project.name}
+                  screen={screen}
+                  onChat={() => navigate("chat")}
                   mock={mock}
                   project={project.id}
                   session={project.session_id}
@@ -226,7 +254,7 @@ export default function Home() {
               </section>
             )}
           </main>
-          {project && aux && (
+          {project && screen === "chat" && aux && (
             <aside>
               <h2>보조 패널</h2>
               <div className="tabs">
@@ -243,24 +271,26 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-              {panel === "세션 그래프" ? (
-                <SessionGraph
-                  project={project}
-                  onOpen={(id) => {
-                    select(id);
-                    setAux(false);
-                    saveLocal("panel-open:" + id, false);
-                  }}
-                />
-              ) : (
-                <p>
-                  {panel === "미니 세션"
-                    ? "원문별 미니 세션은 다음 단계에서 제공됩니다."
-                    : panel === "결과물 그래프"
-                      ? "등록된 결과물이 없습니다."
-                      : project.name + " · 메인 세션"}
-                </p>
-              )}
+              <div className="aux-scroll" aria-label="보조 패널 내용">
+                {panel === "세션 그래프" ? (
+                  <SessionGraph
+                    project={project}
+                    onOpen={(id) => {
+                      select(id);
+                      setAux(false);
+                      saveLocal("panel-open:" + id, false);
+                    }}
+                  />
+                ) : (
+                  <p>
+                    {panel === "미니 세션"
+                      ? "원문별 미니 세션은 다음 단계에서 제공됩니다."
+                      : panel === "결과물 그래프"
+                        ? "등록된 결과물이 없습니다."
+                        : project.name + " · 메인 세션"}
+                  </p>
+                )}
+              </div>
             </aside>
           )}
         </div>

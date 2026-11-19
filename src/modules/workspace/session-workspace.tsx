@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { Chat } from "@/modules/sessions";
 import {
   MaterialLibrary,
+  useCollection,
   Reader,
   readMaterial,
   type Material,
@@ -28,11 +29,15 @@ export function MaterialWorkspace({
   session,
   name,
   mock,
+  screen,
+  onChat,
 }: {
   project: string;
   session: string;
   name: string;
   mock: boolean;
+  screen: string;
+  onChat: () => void;
 }) {
   const key = "workspace:" + session;
   const [view, setView] = useState<View>(empty),
@@ -114,6 +119,7 @@ export function MaterialWorkspace({
     history.replaceState(null, "", url);
   }, [ready, key, view, error]);
   function close(id: string) {
+    setExpanded(false);
     setView((v) => {
       const tabs = v.tabs.filter((t) => t !== id),
         remaining = v.panes.filter((t) => t !== id);
@@ -127,19 +133,59 @@ export function MaterialWorkspace({
       };
     });
   }
+  const [expanded, setExpanded] = useState(false);
+  const [archiveRevision, bumpArchive] = useState(0);
+  const collected = useCallback(
+    (doc: Material) => {
+      refresh(doc);
+      bumpArchive((n) => n + 1);
+    },
+    [refresh],
+  );
+  const collectionError = useCollection(project, revision, collected);
   const current = docs[view.active];
   return (
     <>
-      <MaterialLibrary
-        project={project}
-        revision={revision}
-        onOpen={open}
-        onUpdated={refresh}
-      />
+      {screen === "settings" && (
+        <div className="settings-screen">
+          {mock ? <p>로컬 테스트 계정</p> : <PlanSettings session={session} />}
+        </div>
+      )}
+      {screen === "library" && (
+        <MaterialLibrary
+          project={project}
+          revision={revision + archiveRevision}
+          onOpen={(doc) => {
+            open(doc);
+            onChat();
+          }}
+        />
+      )}
+      {collectionError && screen !== "settings" && (
+        <p className="collection-error" role="alert">
+          검색 자료 수집 · {collectionError}
+        </p>
+      )}
       {error && <p role="alert">{error}</p>}
-      <div className={view.active ? "desk desk-reading" : "desk"}>
+      <div
+        hidden={screen !== "chat"}
+        className={
+          view.active
+            ? "desk desk-reading" + (expanded ? " reader-expanded" : "")
+            : "desk"
+        }
+      >
         <Chat
           session={session}
+          attachments={(select) => (
+            <MaterialLibrary
+              project={project}
+              revision={revision + archiveRevision}
+              attach
+              onOpen={select}
+            />
+          )}
+          onOpenAttachment={async (id) => open(await readMaterial(project, id))}
           onSaved={() => setRevision((n) => n + 1)}
           current={
             current?.state === "ready"
@@ -151,11 +197,8 @@ export function MaterialWorkspace({
               : undefined
           }
           settings={
-            !mock ? (
-              <details className="model-settings">
-                <summary>모델 및 계정</summary>
-                <PlanSettings session={session} />
-              </details>
+            !mock && screen === "chat" ? (
+              <PlanSettings modelOnly session={session} />
             ) : undefined
           }
         />
@@ -174,6 +217,9 @@ export function MaterialWorkspace({
                   </button>
                 ))}
               </div>
+              <button onClick={() => setExpanded(!expanded)}>
+                {expanded ? "대화와 함께 보기" : "원문 확장"}
+              </button>
               {view.tabs.length > 1 && (
                 <button
                   onClick={() =>

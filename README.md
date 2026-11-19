@@ -4,12 +4,9 @@
 
 ## 현재 구조와 Windows 업데이트
 
-앱의 진입점은 `src/app`, 업무별 공개 인터페이스는 `src/modules`, 공통 UI·계약은 `src/shared`, DB와 ChatGPT 어댑터는 `src/server`에 있다. [모듈별 소유권·호출 관계 및 검증](docs/architecture.md)
+현재 프로젝트의 사이드바에서 자료함을 열고 URL·PDF·텍스트를 검색한다. 입력창 ＋에서 새 자료를 등록하거나 보관 자료를 선택해 첨부한다. 계정 관리는 설정에서 연다.
 
-1. 실행 중인 앱을 종료하고 업데이트 ZIP을 별도 폴더에 푼다. 기존 앱 루트의 `.env.local`을 새 프로젝트 루트에 복사한다. 로컬 mock 기록을 사용할 때만 기존 `.mock-data` 폴더도 복사한다.
-2. 자료 보관 업데이트까지 적용한 Supabase에서는 SQL Editor로 `supabase/migrations/202611190003_source_turn.sql`을 한 번 실행한다. 이전 버전이라면 migrations의 미적용 파일만 이름 오름차순으로 먼저 실행한다. 기존 소유자 등록은 유지한다.
-3. 새 프로젝트 루트에서 `npm ci`, `npm run dev:plus` 후 기존과 같은 http://127.0.0.1:3000 을 연다. 같은 Windows 계정·Supabase 설정을 사용하면 기존 DPAPI 계정 저장 위치를 재사용한다. 승인이 만료되었다면 모델 및 계정에서 다시 연결한다.
-4. 기존 프로젝트의 자료 두 개를 열고 2분할한다. 사용할 탭에서 **현재 자료로 질문하기**를 누른 뒤 내용을 편집하고 전송한다. 답변·원문을 새로고침해 확인한다.
+[Windows 적용 및 자료함 503 진단](docs/12_library_workspace.md) · [모듈 구성과 의존 관계](docs/architecture.md)
 
 ## 제품 목표
 

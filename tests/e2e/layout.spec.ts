@@ -3,14 +3,27 @@ test("세션 전환, 두 원문과 스크롤 복원, 단일 자료 명시 참조
   page,
 }, info) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  async function library(register = false) {
+    await expect(
+      page.getByRole("heading", { name: "메인 세션", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "프로젝트 메뉴" }).click();
+    await page
+      .getByRole("navigation")
+      .getByRole("button", { name: "자료함", exact: true })
+      .click();
+    if (register)
+      await page.getByText("자료 등록", { exact: true }).first().click();
+  }
   await page.goto("/");
   await page.getByRole("button", { name: "테스트 계정 로그인" }).click();
   await page.getByRole("button", { name: "새 프로젝트" }).click();
   await page.getByLabel("프로젝트 이름").fill("작업 공간 검증");
   await page.getByRole("button", { name: "생성하고 열기" }).click();
-  await page.getByText("프로젝트 자료함", { exact: true }).click();
+
   for (const title of ["자료 A", "자료 B"]) {
-    await page.getByLabel("자료 유형").selectOption("text");
+    await library(true);
+    await page.getByLabel("자료 유형", { exact: true }).selectOption("text");
     await page.getByLabel("자료 제목").fill(title);
     await page
       .getByLabel("붙여넣을 본문")
@@ -33,8 +46,18 @@ test("세션 전환, 두 원문과 스크롤 복원, 단일 자료 명시 참조
   await input.fill("기록 요약");
   await input.press("Shift+Enter");
   await input.pressSequentially("A");
-  await reader.evaluate((el) => (el.scrollTop = 200));
-  await expect.poll(() => reader.evaluate((el) => el.scrollTop)).toBe(200);
+  const body = reader.locator(".reader-scroll");
+  const otherBody = readers
+    .filter({ has: page.getByRole("heading", { name: "자료 B" }) })
+    .locator(".reader-scroll");
+  await body.hover();
+  await page.mouse.wheel(0, 240);
+  await expect
+    .poll(() => body.evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0);
+  expect(await otherBody.evaluate((el) => el.scrollTop)).toBe(0);
+  await body.evaluate((el) => (el.scrollTop = 200));
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBe(200);
   await page.getByRole("button", { name: "프로젝트 메뉴" }).click();
   await page.getByRole("button", { name: "프로젝트 홈", exact: true }).click();
   await page.getByRole("button", { name: "새 프로젝트" }).click();
@@ -50,15 +73,12 @@ test("세션 전환, 두 원문과 스크롤 복원, 단일 자료 명시 참조
   await page.reload();
   await expect(readers).toHaveCount(2);
   await expect(input).toHaveValue("기록 요약\nA");
-  await expect.poll(() => reader.evaluate((el) => el.scrollTop)).toBe(200);
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBe(200);
   await page.getByRole("button", { name: "보조 패널", exact: true }).click();
   await page.getByRole("button", { name: "세션 그래프", exact: true }).click();
   await page.getByRole("button", { name: /◉ 메인 세션/ }).click();
   await expect(page).toHaveURL(url);
   await page.getByRole("button", { name: "세션 열기", exact: true }).click();
-  await page.getByText("프로젝트 자료함", { exact: true }).click();
-  if (await page.getByLabel("자료 유형").isVisible())
-    await page.getByText("프로젝트 자료함", { exact: true }).click();
   await page.getByRole("button", { name: "다크 모드" }).click();
   await page.screenshot({
     animations: "disabled",
