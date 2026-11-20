@@ -25,3 +25,5 @@ Workers Free의 CPU 시간은 HTTP 또는 예약 호출당 10ms, 외부 하위 �
 Next.js 프로덕션 빌드는 통과한다. 원래 앱은 PDF 추출을 위해 child_process.execFile을 호출하고, 플랜 OAuth에 로컬 포트 리스너와 영구 파일 금고를 쓴다. 로컬 workerd의 nodejs_compat 모드에서 child_process 실행이 미구현으로 반환되는 것을 확인했다. 전체 서버 호환 판정과 테스트 어댑터의 배포 결과는 별개다.
 
 별도로 설치한 workerd 바이너리 경로를 WORKERD_BIN에 설정하고 `node hosting/cloudflare/tests/workerd.mjs`를 실행하면 실제 Workers 런타임에서 익명 401, 테스트 Supabase 로그인, 쿠키 두 개, 인증 후 프로젝트 조회를 확인한다. 대체 인증 서비스는 프로세스 안에서만 접근한다.
+
+실제 Free 환경에서 측정한 Next 브라우저 화면 및 플랜 금고·루프백의 동작, 분석 전용 VM의 사양과 무료 후보 조건은 [최소 분석 호스트](analysis-host.md)에 정리했다.

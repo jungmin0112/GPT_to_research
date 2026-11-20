@@ -1,0 +1,13 @@
+# Private analysis origin for the Workers cron adapter. Keep the existing VM profile available.
+{$RESEARCH_HOST} {
+	@analysis {
+		method POST
+		path_regexp analysis ^/api/(login|logout|projects/[0-9a-fA-F-]{36}/updates)$
+	}
+	handle @analysis {
+		reverse_proxy 127.0.0.1:3000
+	}
+	handle {
+		respond 404
+	}
+}
