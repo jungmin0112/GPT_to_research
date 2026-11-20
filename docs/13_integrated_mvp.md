@@ -26,7 +26,22 @@ Dashboard의 마이그레이션 기록과 실제 DB 객체를 대조해 **미적
 | 11 | 202611190008_reading_policy.sql | 출처별 참조 범위와 독해 정리 캐시 |
 | 12 | 202611190009_update_schedule.sql | 자동 분석 시도 기록, 활동 우선순위·간격·일일 한도 |
 
-SQL Editor에서 `supabase/check-material-library.sql`과 `supabase/check-integrated-mvp.sql`을 차례로 실행한다. 정상 결과는 각각 11행, 22행 모두 ready다. 프로젝트 데이터와 토큰을 출력하지 않는다. 그 후 소유자로 로그인해 자료함을 열고 수집을 실행한다. 실패 시 앱에 나온 RPC 이름과 코드만 확인한다. 별도 PostgreSQL 17/PostgREST 16.5에서 자료 SQL을 생략하면 list_materials와 claim_material 모두 PGRST202, 적용 후 둘 다 HTTP 200이었다. 사용자 프로젝트에서 관측된 앱 503의 내부 코드와 실제 SQL 적용 상태는 미확인이다.
+SQL Editor에서 `supabase/check-material-library.sql`과 `supabase/check-integrated-mvp.sql`을 차례로 실행한다. 정상 결과는 각각 11행, 22행 모두 ready다. 프로젝트 데이터와 토큰을 출력하지 않는다. 그 후 소유자로 로그인해 자료함을 열고 수집을 실행한다. 실패 시 앱에 나온 RPC 이름과 코드만 확인한다.
+
+### 2026-11-20 적용 및 검증 기록
+
+소유자가 복구 가능한 백업과 적용 대상을 확인한 뒤, 기준 커밋 `2aaab71`의 `202611190001_sources.sql`부터 `202611190009_update_schedule.sql`까지 9개 파일을 순서대로 적용했다. 기초 스키마와 비공개 버킷은 이미 존재했다.
+
+| 운영 DB 점검 | 결과 |
+|---|---|
+| 자료함 및 통합 MVP 점검 SQL | 각각 11/11행, 22/22행이 `ready` |
+| 기존 기록 보존 | 프로젝트 1개, 질문 5개, 답변 시도 6개의 행 체크섬이 적용 전후 일치했다. 세션은 1개였다. |
+| 기존 대화의 갱신 대기열 등록 | 완료 답변 3건에 대응하는 `reply` 이벤트 3건이 `pending` 상태로 등록됐다. |
+| 적용 직후 처리 상태 | 자료 0건, 지식 노드 0개, 분석 시도 0회였다. 실제 AI 분석과 결과물 생성은 분석 서버 연결 후 확인한다. |
+
+운영 DB의 읽기 전용 트랜잭션에서 소유자의 `authenticated` 역할로 RPC를 호출했다. `project_list`는 프로젝트 1개, `list_materials`는 정상 빈 목록, `explore_sessions`는 세션 1개, `knowledge_state`는 대기 3건을 반환했다. 운영 웹 화면에서의 자료 수집 POST와 ChatGPT Plus 분석은 별도 인수 항목이다.
+
+별도 PostgreSQL 17·PostgREST 16.5 환경에서 자료함 SQL을 생략하면 `list_materials`와 `claim_material`이 모두 HTTP 404와 `PGRST202`를 반환했다. 적용 후 두 RPC와 `search_materials`가 HTTP 200을 반환했고, 자료 등록 → 갱신 선점 → 근거 저장 → 활동 이력 조회를 확인했다. 과거 Windows 앱에서 관찰된 HTTP 503 요청의 내부 코드는 당시 로그에서 확인되지 않았다.
 
 ## 개인용 상시 호스트
 
