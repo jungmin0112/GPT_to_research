@@ -39,7 +39,7 @@ try { $listener.Start() } finally { $listener.Stop() }
 $app = $null
 $worker = $null
 try {
-    $app = Start-Process -FilePath $node -ArgumentList 'node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p','3000' -NoNewWindow -PassThru
+    $app = Start-Process -FilePath $node -WorkingDirectory $root -ArgumentList 'node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p','3000' -NoNewWindow -PassThru
     $ready = $false
     for ($i = 0; $i -lt 60; $i++) {
         if ($app.HasExited) { throw 'Next server exited' }
@@ -53,7 +53,7 @@ try {
     try {
         $env:WORKER_OWNER_EMAIL = $owner.UserName
         $env:WORKER_OWNER_PASSWORD = $owner.GetNetworkCredential().Password
-        $worker = Start-Process -FilePath $node -ArgumentList 'scripts/update-worker.mjs' -NoNewWindow -PassThru
+        $worker = Start-Process -FilePath $node -WorkingDirectory $root -ArgumentList 'scripts/update-worker.mjs' -NoNewWindow -PassThru
     } finally {
         Remove-Item Env:WORKER_OWNER_PASSWORD, Env:WORKER_OWNER_EMAIL -ErrorAction SilentlyContinue
         $owner = $null
