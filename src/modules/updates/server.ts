@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Problem, type Rpc } from "@/server/database/backend";
-import { analyzeEvidence } from "@/modules/ai/server";
+import { analyzeEvidence, requireAnalysisAccess } from "@/modules/ai/server";
 import type { KnowledgeState, Evidence } from "@/modules/knowledge";
 export async function updateKnowledge(
   rpc: Rpc,
@@ -9,6 +9,7 @@ export async function updateKnowledge(
 ) {
   let processed = 0;
   for (let i = 0; i < (manual ? 10 : 3); i++) {
+    await requireAnalysisAccess();
     const job = crypto.randomUUID();
     const [event] = (await rpc(
       "claim_knowledge",
