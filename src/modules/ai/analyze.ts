@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { mockMode } from "@/server/database/backend";
+import { access } from "@/server/integrations/chatgpt/oauth";
 import { streamResponse } from "@/server/integrations/chatgpt/responses";
 export type AnalysisEvidence = { title: string; body: string; kind: string };
 type Existing = {
@@ -20,6 +21,10 @@ const decision = z.discriminatedUnion("action", [
     reason: z.string().min(1).max(1500),
   }),
 ]);
+export async function requireAnalysisAccess(): Promise<void> {
+  if (!mockMode()) await access();
+}
+
 export async function analyzeEvidence(e: AnalysisEvidence, nodes: Existing[]) {
   const excerpt = e.body.slice(0, 24000);
   const raw = mockMode()
