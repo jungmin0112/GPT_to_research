@@ -14,6 +14,7 @@
 ## Workers Free 실측
 
 - Next 프로덕션 빌드의 실제 로그인 화면을 Free Worker에 올렸다. 1440px·900px 브라우저에서 각각 JS/CSS 9개가 200이었고 화면 예외가 없었다. /api/mode는 200, 익명 /api/projects는 401이었다. UI Worker에서 같은 계정 workers.dev 백엔드를 일반 fetch로 호출했을 때 404/1042가 발생해 RESEARCH_API 서비스 바인딩을 배포했다. 기존 빌드 도구에 선택형 `--workers-api-service`를 주면 이 경로를 사용한다. 현재 백엔드가 제공하는 테스트 API 범위는 위 표와 같다. [Next 화면](https://gts-next-shell-check-20261120.jungmin0112nice.workers.dev) · [Cloudflare 서비스 바인딩](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/)
+- 초기 배포에서는 정적 텍스트를 요청마다 Base64에서 디코딩했다. HTTP 200 응답 45개 표본 중 최고 CPU가 28ms였다. HTML·JS·CSS를 UTF-8 원문으로 응답하도록 재배포한 뒤 200 응답 약 22개 표본의 최고값은 2ms였다. 두 화면 크기에서 각각 정적 자산 9개가 빌드 파일과 바이트 단위로 일치했다. 이 표본만으로 이후 모든 요청이 10ms 안에 끝난다고 보장할 수 없다.
 - 별도 Free 진단 Worker에 앱의 실제 withVault와 파일 잠금 라이브러리를 번들했다. 첫 요청에서 금고에 테스트 표시를 쓰고 /tmp에 파일을 만들었다. 같은 요청에서 listen(0, "127.0.0.1")이 숫자 포트를 반환했다. 다음 요청에서 금고의 표시가 사라졌고 /tmp 파일도 ENOENT였다. 기록된 CPU 시간은 각각 5ms와 1ms였다. 이 수치는 두 파일 시험에 해당한다. 브라우저의 루프백 콜백은 브라우저가 실행되는 기기에 도착하며 Worker에 전달되지 않는다. 현재 파일 금고로 요청 사이에 플랜 승인·refresh 상태를 유지할 수 없어 실제 Plus 요청은 수행하지 않았다. [Workers 파일시스템](https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/) · [공식 OAuth 호스트 절차](https://developers.openai.com/siwc/token-sharing-open-source/self-hosted-vms)
 - 진단 Worker는 측정 후 삭제했다. 같은 동작을 재현할 [진단 소스](tests/plus-runtime-probe.mjs)는 임의 계정 플래그 대신 금고의 pending 필드에 fixture-marker를 넣는다. 운영 토큰을 읽거나 요청하지 않는다. 패키지 루트에서 아래와 같이 별도 esbuild 0.28.2로 빌드하고 임시 Worker의 nodejs_compat 환경에서 /capabilities → /second-request 순서로 요청한다. 기존 계정·금고를 연결하지 않는다.
 
