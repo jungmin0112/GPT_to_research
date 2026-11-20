@@ -16,6 +16,7 @@ export default function Home() {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [ready, setReady] = useState(false),
     [mock, setMock] = useState(false);
+  const [localWorker, setLocalWorker] = useState(false);
   const [active, setActive] = useState(""),
     [drawer, setDrawer] = useState(false);
   const [focus, setFocus] = useState(""),
@@ -119,6 +120,7 @@ export default function Home() {
       try {
         const mode=await request("mode");
         setMock(mode.mock);
+        setLocalWorker(mode.localWorker === true);
         if(mode.serverPending){setServerPending(true);return;}
         await load();
       } catch (e) {
@@ -357,6 +359,7 @@ export default function Home() {
                   <UpdatePanel
                     key={project.id}
                     project={project.id}
+                    localWorker={localWorker}
                     refresh={refreshKnowledge}
                   />
                 </details>

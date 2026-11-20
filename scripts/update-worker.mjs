@@ -10,6 +10,10 @@ const email = process.env.WORKER_OWNER_EMAIL,
   password = process.env.WORKER_OWNER_PASSWORD;
 if (!email || !password)
   throw Error("작업자 전용 환경에 소유자 로그인 설정이 필요합니다.");
+const projectFilter = process.argv.find((arg) => arg.startsWith("--project="))?.slice(10);
+if (projectFilter !== undefined && !/^[a-f0-9-]{36}$/i.test(projectFilter))
+  throw Error("올바른 프로젝트 ID가 필요합니다.");
+const once = process.argv.includes("--once");
 const jar = new Map();
 async function call(path, body) {
   const r = await fetch(new URL("/api/" + path, base), {
@@ -39,10 +43,15 @@ async function check() {
     await call("login", { email, password });
     projects = await call("projects");
   }
-  for (const p of projects) {
+  const selected = projectFilter ? projects.filter(p => p.id === projectFilter) : projects;
+  if (projectFilter && selected.length !== 1) throw Error("대상 프로젝트를 찾을 수 없습니다.");
+  for (const p of selected) {
     try {
-      await call("projects/" + p.id + "/updates", { manual: false });
+      const result = await call("projects/" + p.id + "/updates", { manual: false });
+      if (process.argv.includes("--expect-empty") && result.processed !== 0)
+        throw Error("대기열이 비어 있지 않습니다.");
     } catch (e) {
+      if (once) process.exitCode = 1;
       console.error("갱신 실패", e.status ?? "network");
     }
   }
@@ -52,8 +61,9 @@ do {
   try {
     await check();
   } catch (e) {
+    if (once) process.exitCode = 1;
     console.error("작업자 연결 오류", e.status ?? "network");
   }
-  if (process.argv.includes("--once")) break;
+  if (once) break;
   await delay(Math.max(0, 60000 - (Date.now() - start)));
 } while (true);

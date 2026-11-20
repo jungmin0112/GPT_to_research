@@ -103,3 +103,5 @@ DB 타입은 마이그레이션이 적용된 PostgreSQL의 public 스키마에�
 - 모바일은 기본 기능을 화면 전환 방식으로 제공; 데스크톱·태블릿 우선
 
 > 디자인 참고: ChatGPT 데스크톱 앱의 간결한 사용감. OpenAI의 로고·브랜드 자산을 복제하지 않는다. `GPT to search`는 현재 개인용 작업명이며 공개 제품명 사용 전 상표·브랜드 가이드 검토가 필요하다.
+
+Windows PC를 서버로 사용하여 Cloudflare Access와 Tunnel로 접속하는 설정, 생산 빌드와 CPU·메모리 측정은 [Windows 운영 안내](hosting/windows/README.md)에 있다.

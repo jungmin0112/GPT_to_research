@@ -1,3 +1,4 @@
+import { ownerAssertion } from "@/server/windows-access";
 import { allowHost } from "@/server/host-policy";
 import { projectsRoute } from "@/modules/projects/server";
 import { NextRequest } from "next/server";
@@ -34,6 +35,18 @@ async function handle(
         403,
         "허용된 개인용 앱 주소에서 요청하세요. 계정 승인은 호스트의 로컬 앱에서 진행하세요.",
       );
+    const windowsHost = process.env.WINDOWS_PC_HOST === "1";
+    if (windowsHost) {
+      const loopback = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host);
+      // Tunnel ingress must preserve the public Host. A rewritten Host must
+      // never turn an Internet request into a local Plus approval request.
+      if (loopback && (req.headers.has("cf-ray") || req.headers.has("cf-access-jwt-assertion")))
+        throw new Problem(403, "터널의 HTTP Host Header 설정을 확인하세요.");
+      if (!loopback && !(await ownerAssertion(
+        req.headers.get("cf-access-jwt-assertion"), process.env.CF_ACCESS_TEAM_DOMAIN,
+        process.env.CF_ACCESS_AUD, process.env.CF_ACCESS_OWNER_EMAIL,
+      ))) throw new Problem(403, "Cloudflare Access 소유자 승인이 필요합니다.");
+    }
     if (
       post &&
       ((req.headers.get("origin") &&
@@ -49,7 +62,7 @@ async function handle(
             !req.headers.get("content-type")?.startsWith("application/json")))
     )
       throw new Problem(403, "요청 출처를 확인해 주세요.");
-    if (!post && route === "mode") return Response.json({ mock: mockMode() });
+    if (!post && route === "mode") return Response.json({ mock: mockMode(), localWorker: windowsHost });
     if (post && route === "login") {
       const body = mockMode()
         ? { email: "", password: "" }
