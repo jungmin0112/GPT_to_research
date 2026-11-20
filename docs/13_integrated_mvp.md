@@ -32,6 +32,8 @@ SQL Editor에서 `supabase/check-material-library.sql`과 `supabase/check-integr
 
 소유자가 복구 가능한 백업과 적용 대상을 확인한 뒤, 기준 커밋 `2aaab71`의 `202611190001_sources.sql`부터 `202611190009_update_schedule.sql`까지 9개 파일을 순서대로 적용했다. 기초 스키마와 비공개 버킷은 이미 존재했다.
 
+Supabase의 마이그레이션 이력을 다시 조회해 적용 기록 9개를 확인했다. MCP가 부여한 원격 버전 번호는 적용 시각을 사용한다. 이후 CLI의 `db push`를 실행하기 전, 원격 이름 `gts_202611190001_sources`부터 `gts_202611190009_update_schedule`까지를 저장소 SQL 파일명과 대조해 중복 실행을 방지한다.
+
 | 운영 DB 점검 | 결과 |
 |---|---|
 | 자료함 및 통합 MVP 점검 SQL | 각각 11/11행, 22/22행이 `ready` |
